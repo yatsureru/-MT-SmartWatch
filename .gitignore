@@ -1,0 +1,10 @@
+*.zip
+*.rar
+*.7z
+build/
+dist/
+.idea/
+.vscode/
+*.log
+Thumbs.db
+.DS_Store
