@@ -1,0 +1,15 @@
+module Base
+{
+    item MTSW_Core_Tactical
+    {
+        DisplayName = MTSW_Core_Tactical,
+        DisplayCategory = Material,
+        ItemType = base:normal,
+        Icon = MTSW_Core_Tactical,
+        Tooltip = MTSW_Core_Tactical,
+        WorldStaticModel = GunCase_Ground,
+        MetalValue = 1.0,
+        Weight = 0.05,
+		Tags = MTSW_OSCore,
+    }
+}

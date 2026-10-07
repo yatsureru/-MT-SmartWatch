@@ -1,0 +1,14 @@
+module Base
+{
+    item MTSW_FChip_StaminaHUD
+    {
+        DisplayName = MTSW_FChip_StaminaHUD,
+        DisplayCategory = Material,
+        ItemType = base:normal,
+        Icon = MTSW_FChip_StaminaHUD,
+        Tooltip = MTSW_FChip_StaminaHUD,
+        WorldStaticModel = GunCase_Ground,
+        MetalValue = 1.0,
+        Weight = 0.01,
+    }
+}

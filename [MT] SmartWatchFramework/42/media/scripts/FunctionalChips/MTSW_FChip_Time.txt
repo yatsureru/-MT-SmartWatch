@@ -1,0 +1,14 @@
+module Base
+{
+    item MTSW_FChip_Time
+    {
+        DisplayName = MTSW_FChip_Time,
+        DisplayCategory = Material,
+        ItemType = base:normal,
+        Icon = MTSW_FChip_Time,
+        Tooltip = MTSW_FChip_Time,
+        WorldStaticModel = GunCase_Ground,
+        MetalValue = 1.0,
+        Weight = 0.01,
+    }
+}

@@ -1,0 +1,14 @@
+module Base
+{
+    item MTSW_AChip_Radio
+    {
+        DisplayName = MTSW_AChip_Radio,
+        DisplayCategory = Material,
+        ItemType = base:normal,
+        Icon = MTSW_AChip_Radio,
+        Tooltip = MTSW_AChip_Radio,
+        WorldStaticModel = GunCase_Ground,
+        MetalValue = 1.0,
+        Weight = 0.01,
+    }
+}

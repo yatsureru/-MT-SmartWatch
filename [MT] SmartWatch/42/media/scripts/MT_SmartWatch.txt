@@ -1,0 +1,42 @@
+module Base
+{
+	item MT_SmartWatch
+    {
+		DisplayName = MT_SmartWatch,
+		ItemType = base:clothing,
+		Weight = 0.01,
+		Icon = MT_SmartWatch,
+		BodyLocation = MTSW:MT_SmartWatch,
+		CanBeEquipped = MTSW:MT_SmartWatch,
+		BloodLocation = Hand_L,
+		ClothingItem = MT_SmartWatch,
+		CanHaveHoles = FALSE,
+		WorldStaticModel = GunCase_Ground,
+		SoundRadius = 7,
+		AlarmSound = WatchAlarmLoop,
+		Tags = mtsw:smartwatch,
+		Tooltip = Tooltip_MT_SmartWatch,
+    }
+	
+	craftRecipe MT_SmartWatch
+	{
+		timedAction = SewingCloth,
+		Time = 10,
+        xpAward = Tailoring:1,
+		AllowBatchCraft = False,
+		Tags = AnySurfaceCraft,
+        category = [MT]_CustomSkin,
+		inputs
+		{
+			item 1 tags[Scissors;SharpKnife] mode:keep flags[MayDegradeLight],
+			item 1 tags[SewingNeedle] mode:keep flags[MayDegradeLight],
+			
+			item 2 [Base.RippedSheets],
+		}
+		outputs
+		{
+			item 1 Base.MT_SmartWatch,
+		}
+	}
+
+}

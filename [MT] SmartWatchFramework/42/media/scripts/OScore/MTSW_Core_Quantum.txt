@@ -1,0 +1,15 @@
+module Base
+{
+    item MTSW_Core_Quantum
+    {
+        DisplayName = MTSW_Core_Quantum,
+        DisplayCategory = Material,
+        ItemType = base:normal,
+        Icon = MTSW_Core_Quantum,
+        Tooltip = MTSW_Core_Quantum,
+        WorldStaticModel = GunCase_Ground,
+        MetalValue = 1.0,
+        Weight = 0.05,
+		Tags = MTSW_OSCore,
+    }
+}

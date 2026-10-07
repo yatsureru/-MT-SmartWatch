@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<clothingItem>
+	<m_MaleModel>Mutilated/blank</m_MaleModel>
+	<m_FemaleModel>Mutilated/MT_SmartWatch</m_FemaleModel>
+	<m_GUID>1482364b-7e48-4052-b6cd-6465bc94e79e</m_GUID>
+	<m_Static>false</m_Static>
+	<m_AllowRandomTint>false</m_AllowRandomTint>
+	<m_AttachBone></m_AttachBone>
+	<textureChoices>Mutilated/MT_SmartWatch</textureChoices>
+</clothingItem>

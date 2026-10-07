@@ -1,0 +1,6 @@
+name=[MT] SmartWatch
+id=[MT] SmartWatch
+poster=poster.png
+icon=logo.png
+description=
+require=\[MT] SmartWatchFramework
