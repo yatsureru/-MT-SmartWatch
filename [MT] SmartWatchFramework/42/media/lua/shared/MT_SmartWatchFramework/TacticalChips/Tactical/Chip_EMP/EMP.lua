@@ -1,7 +1,18 @@
 --------------------------------------------------
--- MT Smart Watch: Tactical EMP — Revision N
+-- MT Smart Watch: Tactical EMP — Revision N+2
 -- Target: PZ Build 42.21 (SP + MP)
 -- -------------------------------------------------
+-- Revision N+2:
+--  * Поле регистра: cooldownMinutes (было cooldown).
+--  * Публичный API: + getCooldownRemainingMinutes.
+--  * LEGACY_COOLDOWN_THRESHOLD: 1e10 -> 1e9.
+-- Revision N+1:
+--  * Кулдаун переведён на ИГРОВОЕ время
+--    (worldAgeHours): пауза останавливает
+--    кулдаун вместе с эффектом.
+--  * Legacy-кулдауны (реальные мс) мигрируют:
+--    считаются истёкшими и чистятся.
+--  * F10/Debug: остаток в игровых минутах.
 -- Revision M +:
 --  * isObjectLocked: throttle cleanup (500 мс)
 --  * ISRadioAction: fallback на action.object
@@ -50,8 +61,6 @@ local RADIUS_MIN = 1
 local RADIUS_MAX = 50
 local DURATION_MIN = 1
 local DURATION_MAX = 1440
-local COOLDOWN_MIN = 0
-local COOLDOWN_MAX = 86400
 
 
 --------------------------------------------------
@@ -166,11 +175,101 @@ local function getCooldowns(watch)
 end
 
 
+--------------------------------------------------
+-- COOLDOWN UNITS
+-- Кулдаун в ИГРОВЫХ минутах.
+-- Живёт на worldAgeHours — тех же часах,
+-- что и длительность эффекта. Пауза
+-- останавливает оба таймера разом.
+--------------------------------------------------
+
+local COOLDOWN_GAME_MIN_MIN = 0
+local COOLDOWN_GAME_MIN_MAX = 1440
+
+local DEFAULT_COOLDOWN_GAME_MINUTES = 31
+
+-- Миграция: в modData мог остаться кулдаун старого
+-- формата (реальные мс, epoch ~1.7e12). Такие значения
+-- считаем истёкшими и чистим при первом чтении.
+-- Порог 1e9: миллисекунды epoch (~1.7e12) отсекаются
+-- с большим запасом; игровые секунды (hours * 3600)
+-- до такого значения практически не дотянут.
+local LEGACY_COOLDOWN_THRESHOLD = 1e9
+
+
+local function nowGameSeconds()
+
+    local gt = getGameTime()
+
+    if not gt then
+        return nil
+    end
+
+
+    local ok, hours = pcall(function()
+        return gt:getWorldAgeHours()
+    end)
+
+
+    if not ok or type(hours) ~= "number" then
+        return nil
+    end
+
+
+    return hours * 3600
+
+end
+
+
 function EMP.getCooldownRemaining(watch)
+
     local cooldowns = getCooldowns(watch)
-    if not cooldowns then return 0 end
-    local readyAt = tonumber(cooldowns.EMP) or 0
-    return math.max(0, (readyAt - getTimestampMs()) / 1000)
+
+    if not cooldowns then
+        return 0
+    end
+
+
+    local readyAt = tonumber(cooldowns.EMP)
+
+    if not readyAt then
+        return 0
+    end
+
+
+    -- Legacy-значение из старых сейвов: чистим.
+    if readyAt > LEGACY_COOLDOWN_THRESHOLD then
+        cooldowns.EMP = nil
+        return 0
+    end
+
+
+    local now = nowGameSeconds()
+
+    if not now then
+        return 0
+    end
+
+
+    return
+        math.max(0, readyAt - now)
+
+end
+
+
+--------------------------------------------------
+-- GET COOLDOWN REMAINING (MINUTES)
+-- Удобная обёртка для UI / дебага.
+-- Не меняет контракт getCooldownRemaining
+-- (тот по-прежнему возвращает секунды).
+--------------------------------------------------
+
+function EMP.getCooldownRemainingMinutes(watch)
+
+    return
+        EMP.getCooldownRemaining(watch)
+        / 60
+
 end
 
 
@@ -1556,9 +1655,11 @@ local function activateEMPInternal(player, watch)
         data.durationMinutes,
         DURATION_MIN, DURATION_MAX, 30
     )
-    local cooldownSeconds = clampNumber(
-        data.cooldown,
-        COOLDOWN_MIN, COOLDOWN_MAX, 30
+    local cooldownGameMinutes = clampNumber(
+        data.cooldownMinutes,
+        COOLDOWN_GAME_MIN_MIN,
+        COOLDOWN_GAME_MIN_MAX,
+        DEFAULT_COOLDOWN_GAME_MINUTES
     )
 
     local affected = {}
@@ -1615,10 +1716,16 @@ local function activateEMPInternal(player, watch)
             error("battery_drain_failed")
         end
 
+        -- Кулдаун в игровых секундах на worldAgeHours.
+        -- Если игровой таймер недоступен — кулдаун
+        -- в этот каст не ставится (rollback не задет).
         if savedCooldowns then
-            savedCooldowns.EMP =
-                getTimestampMs()
-                + cooldownSeconds * 1000
+            local now = nowGameSeconds()
+            if now then
+                savedCooldowns.EMP =
+                    now
+                    + cooldownGameMinutes * 60
+            end
         end
 
         if isClient() or isServer() then
@@ -1680,7 +1787,8 @@ local function activateEMPInternal(player, watch)
     )
     print(
         "[MT Smart Watch] EMP Cooldown: "
-        .. tostring(cooldownSeconds) .. " sec"
+        .. tostring(cooldownGameMinutes)
+        .. " game minutes"
     )
 
     local unsupportedCount = 0
@@ -2710,5 +2818,5 @@ end
 
 print(
     "[MT Smart Watch] Tactical EMP loaded "
-    .. "(B42 / SP+MP, refcount, revision N)"
+    .. "(B42 / SP+MP, refcount, revision N+2)"
 )

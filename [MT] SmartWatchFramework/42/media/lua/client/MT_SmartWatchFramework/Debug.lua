@@ -17,19 +17,112 @@ local function getEquippedWatch()
         return nil
     end
 
+
     local player =
         getPlayer()
+
 
     if not player then
         return nil
     end
 
+
     if not MT_SmartWatch.Watch then
         return nil
     end
 
+
     return
-        MT_SmartWatch.Watch.getEquippedWatch(player)
+        MT_SmartWatch.Watch.getEquippedWatch(
+            player
+        )
+
+end
+
+
+--------------------------------------------------
+-- CHIP STATE HELPER
+-- Возвращает (mode, draining) для чипа.
+-- Draining = «реально расходует батарею
+-- прямо сейчас» — то же, что использует
+-- BatteryDrain.getDrainPerMinute.
+--------------------------------------------------
+
+local function getChipState(
+    watch,
+    fullType
+)
+
+    local ChipSystem =
+        MT_SmartWatch.ChipSystem
+
+
+    local mode =
+        "none"
+
+
+    if ChipSystem
+        and type(
+            ChipSystem.getChipDataByFullType
+        ) == "function" then
+
+        local data =
+            ChipSystem.getChipDataByFullType(
+                fullType
+            )
+
+
+        if data then
+
+            mode =
+                data.batteryDrainMode
+                or "none"
+
+        end
+
+    end
+
+
+    local BatteryDrain =
+        MT_SmartWatch.BatteryDrain
+
+
+    local draining =
+        false
+
+
+    if BatteryDrain
+        and type(
+            BatteryDrain.isChipDrainActive
+        ) == "function" then
+
+        draining =
+            BatteryDrain.isChipDrainActive(
+                watch,
+                fullType
+            )
+            and true
+            or false
+
+    elseif ChipSystem
+        and type(
+            ChipSystem.isChipActive
+        ) == "function" then
+
+        -- Fallback: старое поведение.
+        draining =
+            ChipSystem.isChipActive(
+                watch,
+                fullType
+            )
+            and true
+            or false
+
+    end
+
+
+    return mode, draining
+
 end
 
 
@@ -40,44 +133,92 @@ end
 
 function Debug.testEquippedWatch()
 
-    print("[MT Smart Watch] ========== FULL WATCH TEST ==========")
+    print(
+        "[MT Smart Watch] "
+        .. "========== FULL WATCH TEST =========="
+    )
+
 
     local player =
         getPlayer()
 
+
     if not player then
-        print("[MT Smart Watch] Player: NOT FOUND")
-        print("[MT Smart Watch] ========== FULL WATCH TEST END ==========")
+
+        print(
+            "[MT Smart Watch] "
+            .. "Player: NOT FOUND"
+        )
+
+        print(
+            "[MT Smart Watch] "
+            .. "========== FULL WATCH TEST END =========="
+        )
+
         return
+
     end
+
 
     local Watch =
         MT_SmartWatch.Watch
 
+
     if not Watch then
-        print("[MT Smart Watch] Watch module: NOT FOUND")
-        print("[MT Smart Watch] ========== FULL WATCH TEST END ==========")
+
+        print(
+            "[MT Smart Watch] "
+            .. "Watch module: NOT FOUND"
+        )
+
+        print(
+            "[MT Smart Watch] "
+            .. "========== FULL WATCH TEST END =========="
+        )
+
         return
+
     end
+
 
     local watch =
-        Watch.getEquippedWatch(player)
+        Watch.getEquippedWatch(
+            player
+        )
+
 
     if not watch then
-        print("[MT Smart Watch] Watch: NOT EQUIPPED")
-        print("[MT Smart Watch] ========== FULL WATCH TEST END ==========")
+
+        print(
+            "[MT Smart Watch] "
+            .. "Watch: NOT EQUIPPED"
+        )
+
+        print(
+            "[MT Smart Watch] "
+            .. "========== FULL WATCH TEST END =========="
+        )
+
         return
+
     end
 
-    print("[MT Smart Watch] Watch: EQUIPPED")
+
+    print(
+        "[MT Smart Watch] "
+        .. "Watch: EQUIPPED"
+    )
+
 
     local fullType =
         watch:getFullType()
+
 
     print(
         "[MT Smart Watch] FullType: "
         .. tostring(fullType)
     )
+
 
     print(
         "[MT Smart Watch] Tag: "
@@ -94,26 +235,35 @@ function Debug.testEquippedWatch()
     local OSCore =
         MT_SmartWatch.OSCore
 
+
     if not OSCore then
 
         print(
-            "[MT Smart Watch] OSCore module: NOT FOUND"
+            "[MT Smart Watch] "
+            .. "OSCore module: NOT FOUND"
         )
 
     else
 
         local coreFullType =
-            OSCore.getInstalledFullType(watch)
+            OSCore.getInstalledFullType(
+                watch
+            )
+
 
         print(
             "[MT Smart Watch] Core: "
             .. tostring(coreFullType)
         )
 
+
         if coreFullType then
 
             local coreData =
-                OSCore.getInstalledData(watch)
+                OSCore.getInstalledData(
+                    watch
+                )
+
 
             if coreData then
 
@@ -122,27 +272,40 @@ function Debug.testEquippedWatch()
                     .. tostring(coreData.id)
                 )
 
+
                 print(
-                    "[MT Smart Watch] Battery Capacity: "
-                    .. tostring(coreData.batteryCapacity)
+                    "[MT Smart Watch] "
+                    .. "Battery Capacity: "
+                    .. tostring(
+                        coreData.batteryCapacity
+                    )
                 )
+
 
                 print(
                     "[MT Smart Watch] Memory: "
-                    .. tostring(coreData.memory)
+                    .. tostring(
+                        coreData.memory
+                    )
                 )
+
 
                 print(
                     "[MT Smart Watch] Tier: "
-                    .. tostring(coreData.minChipTier)
+                    .. tostring(
+                        coreData.minChipTier
+                    )
                     .. "-"
-                    .. tostring(coreData.maxChipTier)
+                    .. tostring(
+                        coreData.maxChipTier
+                    )
                 )
 
             else
 
                 print(
-                    "[MT Smart Watch] Core Data: NOT FOUND"
+                    "[MT Smart Watch] "
+                    .. "Core Data: NOT FOUND"
                 )
 
             end
@@ -159,6 +322,7 @@ function Debug.testEquippedWatch()
     local ChipSystem =
         MT_SmartWatch.ChipSystem
 
+
     if ChipSystem then
 
         print(
@@ -172,6 +336,7 @@ function Debug.testEquippedWatch()
             )
         )
 
+
         print(
             "[MT Smart Watch] Free Memory: "
             .. tostring(
@@ -182,7 +347,8 @@ function Debug.testEquippedWatch()
     else
 
         print(
-            "[MT Smart Watch] ChipSystem module: NOT FOUND"
+            "[MT Smart Watch] "
+            .. "ChipSystem module: NOT FOUND"
         )
 
     end
@@ -197,18 +363,26 @@ function Debug.testEquippedWatch()
         print(
             "[MT Smart Watch] Tactical Slots: "
             .. tostring(
-                ChipSystem.getTacticalChipCount(watch)
+                ChipSystem.getTacticalChipCount(
+                    watch
+                )
             )
             .. " / "
             .. tostring(
-                ChipSystem.getTacticalSlots(watch)
+                ChipSystem.getTacticalSlots(
+                    watch
+                )
             )
         )
 
+
         print(
-            "[MT Smart Watch] Free Tactical Slots: "
+            "[MT Smart Watch] "
+            .. "Free Tactical Slots: "
             .. tostring(
-                ChipSystem.getFreeTacticalSlots(watch)
+                ChipSystem.getFreeTacticalSlots(
+                    watch
+                )
             )
         )
 
@@ -221,36 +395,46 @@ function Debug.testEquippedWatch()
 
     local chips = {}
 
+
     if ChipSystem then
 
         chips =
-            ChipSystem.getInstalledChips(watch)
+            ChipSystem.getInstalledChips(
+                watch
+            )
             or {}
 
     end
+
 
     print(
         "[MT Smart Watch] Installed Chips: "
         .. tostring(#chips)
     )
 
+
     for i = 1, #chips do
 
         local chipFullType =
             chips[i]
+
+
+        local mode, draining =
+            getChipState(
+                watch,
+                chipFullType
+            )
+
 
         print(
             "[MT Smart Watch] Chip "
             .. tostring(i)
             .. ": "
             .. tostring(chipFullType)
-            .. " | Active: "
-            .. tostring(
-                ChipSystem.isChipActive(
-                    watch,
-                    chipFullType
-                )
-            )
+            .. " | Mode: "
+            .. tostring(mode)
+            .. " | Draining: "
+            .. tostring(draining)
         )
 
     end
@@ -263,11 +447,13 @@ function Debug.testEquippedWatch()
     local Battery =
         MT_SmartWatch.Battery
 
+
     if Battery then
 
         print(
             "[MT Smart Watch] Battery: "
-            .. tostring(
+            .. string.format(
+                "%.2f",
                 Battery.getCurrent(watch)
             )
             .. " / "
@@ -279,7 +465,8 @@ function Debug.testEquippedWatch()
     else
 
         print(
-            "[MT Smart Watch] Battery module: NOT FOUND"
+            "[MT Smart Watch] "
+            .. "Battery module: NOT FOUND"
         )
 
     end
@@ -292,10 +479,13 @@ function Debug.testEquippedWatch()
     local RadioApp =
         MT_SmartWatch.RadioApp
 
-    if RadioApp and RadioApp.isActive then
+
+    if RadioApp
+        and RadioApp.isActive then
 
         print(
-            "[MT Smart Watch] Radio App Active: "
+            "[MT Smart Watch] "
+            .. "Radio App Active: "
             .. tostring(
                 RadioApp.isActive()
             )
@@ -304,12 +494,18 @@ function Debug.testEquippedWatch()
     else
 
         print(
-            "[MT Smart Watch] Radio App Active: false"
+            "[MT Smart Watch] "
+            .. "Radio App Active: false"
         )
 
     end
 
-    print("[MT Smart Watch] ========== FULL WATCH TEST END ==========")
+
+    print(
+        "[MT Smart Watch] "
+        .. "========== FULL WATCH TEST END =========="
+    )
+
 end
 
 
@@ -320,81 +516,116 @@ end
 
 function Debug.testBatteryDrain()
 
-    print("[MT Smart Watch] ========== BATTERY DRAIN TEST ==========")
+    print(
+        "[MT Smart Watch] "
+        .. "========= BATTERY DRAIN TEST =========="
+    )
+
 
     local player =
         getPlayer()
 
+
     if not player then
+
         print(
-            "[MT Smart Watch] Battery Test ERROR: Player not found"
+            "[MT Smart Watch] "
+            .. "Battery Test ERROR: Player not found"
         )
 
         print(
-            "[MT Smart Watch] ========== BATTERY DRAIN TEST END =========="
+            "[MT Smart Watch] "
+            .. "========== BATTERY DRAIN TEST END =========="
         )
 
         return
+
     end
+
 
     local Watch =
         MT_SmartWatch.Watch
 
+
     if not Watch then
+
         print(
-            "[MT Smart Watch] Battery Test ERROR: Watch module not found"
+            "[MT Smart Watch] "
+            .. "Battery Test ERROR: Watch module not found"
         )
 
         print(
-            "[MT Smart Watch] ========== BATTERY DRAIN TEST END =========="
+            "[MT Smart Watch] "
+            .. "========== BATTERY DRAIN TEST END =========="
         )
 
         return
+
     end
+
 
     local watch =
-        Watch.getEquippedWatch(player)
+        Watch.getEquippedWatch(
+            player
+        )
+
 
     if not watch then
+
         print(
-            "[MT Smart Watch] Battery Test ERROR: Smart Watch not equipped"
+            "[MT Smart Watch] "
+            .. "Battery Test ERROR: Smart Watch not equipped"
         )
 
         print(
-            "[MT Smart Watch] ========== BATTERY DRAIN TEST END =========="
+            "[MT Smart Watch] "
+            .. "========== BATTERY DRAIN TEST END =========="
         )
 
         return
+
     end
+
 
     local BatteryDrain =
         MT_SmartWatch.BatteryDrain
 
+
     local Battery =
         MT_SmartWatch.Battery
 
+
     if not BatteryDrain then
+
         print(
-            "[MT Smart Watch] Battery Test ERROR: BatteryDrain module not found"
+            "[MT Smart Watch] "
+            .. "Battery Test ERROR: BatteryDrain module not found"
         )
 
         print(
-            "[MT Smart Watch] ========== BATTERY DRAIN TEST END =========="
+            "[MT Smart Watch] "
+            .. "========== BATTERY DRAIN TEST END =========="
         )
 
         return
+
     end
 
+
     if not Battery then
+
         print(
-            "[MT Smart Watch] Battery Test ERROR: Battery module not found"
+            "[MT Smart Watch] "
+            .. "Battery Test ERROR: Battery module not found"
         )
 
         print(
-            "[MT Smart Watch] ========== BATTERY DRAIN TEST END =========="
+            "[MT Smart Watch] "
+            .. "========== BATTERY DRAIN TEST END =========="
         )
 
         return
+
     end
 
 
@@ -403,11 +634,17 @@ function Debug.testBatteryDrain()
     --------------------------------------------------
 
     local drainPerMinute =
-        BatteryDrain.getDrainPerMinute(watch)
+        BatteryDrain.getDrainPerMinute(
+            watch
+        )
+
 
     print(
         "[MT Smart Watch] Drain / Game Minute: "
-        .. tostring(drainPerMinute)
+        .. string.format(
+            "%.2f",
+            drainPerMinute
+        )
     )
 
 
@@ -418,18 +655,28 @@ function Debug.testBatteryDrain()
     local before =
         Battery.getCurrent(watch)
 
+
     print(
-        "[MT Smart Watch] Battery Drain / 1 Game Minute"
+        "[MT Smart Watch] "
+        .. "Battery Drain / 1 Game Minute"
     )
+
 
     print(
         "[MT Smart Watch] Configured Drain: "
-        .. tostring(drainPerMinute)
+        .. string.format(
+            "%.2f",
+            drainPerMinute
+        )
     )
+
 
     print(
         "[MT Smart Watch] Before: "
-        .. tostring(before)
+        .. string.format(
+            "%.2f",
+            before
+        )
     )
 
 
@@ -451,17 +698,30 @@ function Debug.testBatteryDrain()
     local after =
         Battery.getCurrent(watch)
 
+
     print(
         "[MT Smart Watch] Actual Drain: "
-        .. tostring(actual)
+        .. string.format(
+            "%.2f",
+            actual
+        )
     )
+
 
     print(
         "[MT Smart Watch] After: "
-        .. tostring(after)
+        .. string.format(
+            "%.2f",
+            after
+        )
     )
 
-    print("[MT Smart Watch] ========== BATTERY DRAIN TEST END ==========")
+
+    print(
+        "[MT Smart Watch] "
+        .. "========== BATTERY DRAIN TEST END =========="
+    )
+
 end
 
 
@@ -471,13 +731,22 @@ end
 
 function Debug.testAllSystems()
 
-    print("[MT Smart Watch] ========== ALL SYSTEMS TEST ==========")
+    print(
+        "[MT Smart Watch] "
+        .. "========== ALL SYSTEMS TEST =========="
+    )
+
 
     Debug.testEquippedWatch()
 
     Debug.testBatteryDrain()
 
-    print("[MT Smart Watch] ========== ALL SYSTEMS TEST END ==========")
+
+    print(
+        "[MT Smart Watch] "
+        .. "========== ALL SYSTEMS TEST END =========="
+    )
+
 end
 
 
@@ -488,38 +757,66 @@ end
 
 function Debug.testInstallLogicCore()
 
-    print("[MT Smart Watch] ========== INSTALL LOGIC CORE ==========")
+    print(
+        "[MT Smart Watch] "
+        .. "========== INSTALL LOGIC CORE =========="
+    )
+
 
     local player =
         getPlayer()
 
+
     if not player then
-        print("[MT Smart Watch] ERROR: Player not found")
+
+        print(
+            "[MT Smart Watch] ERROR: Player not found"
+        )
+
         return
+
     end
+
 
     local watch =
-        MT_SmartWatch.Watch.getEquippedWatch(player)
+        MT_SmartWatch.Watch.getEquippedWatch(
+            player
+        )
+
 
     if not watch then
-        print("[MT Smart Watch] ERROR: Smart Watch not equipped")
+
+        print(
+            "[MT Smart Watch] "
+            .. "ERROR: Smart Watch not equipped"
+        )
+
         return
+
     end
+
 
     local inventory =
         player:getInventory()
+
 
     local core =
         inventory:getFirstType(
             "Base.MTSW_Core_Logic"
         )
 
+
     if not core then
+
         print(
-            "[MT Smart Watch] ERROR: Logic Core not found in inventory"
+            "[MT Smart Watch] "
+            .. "ERROR: Logic Core not found in inventory"
         )
+
         return
+
     end
+
 
     local result =
         MT_SmartWatch.OSCore.installCore(
@@ -527,14 +824,19 @@ function Debug.testInstallLogicCore()
             core
         )
 
+
     print(
-        "[MT Smart Watch] Logic Core Install Result: "
+        "[MT Smart Watch] "
+        .. "Logic Core Install Result: "
         .. tostring(result)
     )
 
+
     print(
-        "[MT Smart Watch] ========== INSTALL LOGIC CORE END =========="
+        "[MT Smart Watch] "
+        .. "========== INSTALL LOGIC CORE END =========="
     )
+
 end
 
 
@@ -545,23 +847,44 @@ end
 
 function Debug.testRemoveOSCore()
 
-    print("[MT Smart Watch] ========== REMOVE OS CORE ==========")
+    print(
+        "[MT Smart Watch] "
+        .. "========== REMOVE OS CORE =========="
+    )
+
 
     local player =
         getPlayer()
 
+
     if not player then
-        print("[MT Smart Watch] ERROR: Player not found")
+
+        print(
+            "[MT Smart Watch] ERROR: Player not found"
+        )
+
         return
+
     end
+
 
     local watch =
-        MT_SmartWatch.Watch.getEquippedWatch(player)
+        MT_SmartWatch.Watch.getEquippedWatch(
+            player
+        )
+
 
     if not watch then
-        print("[MT Smart Watch] ERROR: Smart Watch not equipped")
+
+        print(
+            "[MT Smart Watch] "
+            .. "ERROR: Smart Watch not equipped"
+        )
+
         return
+
     end
+
 
     local result =
         MT_SmartWatch.OSCore.removeCore(
@@ -569,14 +892,19 @@ function Debug.testRemoveOSCore()
             player
         )
 
+
     print(
-        "[MT Smart Watch] Core Remove Result: "
+        "[MT Smart Watch] "
+        .. "Core Remove Result: "
         .. tostring(result)
     )
 
+
     print(
-        "[MT Smart Watch] ========== REMOVE OS CORE END =========="
+        "[MT Smart Watch] "
+        .. "========== REMOVE OS CORE END =========="
     )
+
 end
 
 
@@ -587,38 +915,66 @@ end
 
 function Debug.testInstallTacticalCore()
 
-    print("[MT Smart Watch] ========== INSTALL TACTICAL CORE ==========")
+    print(
+        "[MT Smart Watch] "
+        .. "========== INSTALL TACTICAL CORE =========="
+    )
+
 
     local player =
         getPlayer()
 
+
     if not player then
-        print("[MT Smart Watch] ERROR: Player not found")
+
+        print(
+            "[MT Smart Watch] ERROR: Player not found"
+        )
+
         return
+
     end
+
 
     local watch =
-        MT_SmartWatch.Watch.getEquippedWatch(player)
+        MT_SmartWatch.Watch.getEquippedWatch(
+            player
+        )
+
 
     if not watch then
-        print("[MT Smart Watch] ERROR: Smart Watch not equipped")
+
+        print(
+            "[MT Smart Watch] "
+            .. "ERROR: Smart Watch not equipped"
+        )
+
         return
+
     end
+
 
     local inventory =
         player:getInventory()
+
 
     local core =
         inventory:getFirstType(
             "Base.MTSW_Core_Tactical"
         )
 
+
     if not core then
+
         print(
-            "[MT Smart Watch] ERROR: Tactical Core not found in inventory"
+            "[MT Smart Watch] "
+            .. "ERROR: Tactical Core not found in inventory"
         )
+
         return
+
     end
+
 
     local result =
         MT_SmartWatch.OSCore.installCore(
@@ -626,14 +982,19 @@ function Debug.testInstallTacticalCore()
             core
         )
 
+
     print(
-        "[MT Smart Watch] Tactical Core Install Result: "
+        "[MT Smart Watch] "
+        .. "Tactical Core Install Result: "
         .. tostring(result)
     )
 
+
     print(
-        "[MT Smart Watch] ========== INSTALL TACTICAL CORE END =========="
+        "[MT Smart Watch] "
+        .. "========== INSTALL TACTICAL CORE END =========="
     )
+
 end
 
 
@@ -644,23 +1005,44 @@ end
 
 function Debug.testRemoveTimeChip()
 
-    print("[MT Smart Watch] ========== REMOVE TIME CHIP ==========")
+    print(
+        "[MT Smart Watch] "
+        .. "========== REMOVE TIME CHIP =========="
+    )
+
 
     local player =
         getPlayer()
 
+
     if not player then
-        print("[MT Smart Watch] ERROR: Player not found")
+
+        print(
+            "[MT Smart Watch] ERROR: Player not found"
+        )
+
         return
+
     end
+
 
     local watch =
-        MT_SmartWatch.Watch.getEquippedWatch(player)
+        MT_SmartWatch.Watch.getEquippedWatch(
+            player
+        )
+
 
     if not watch then
-        print("[MT Smart Watch] ERROR: Smart Watch not equipped")
+
+        print(
+            "[MT Smart Watch] "
+            .. "ERROR: Smart Watch not equipped"
+        )
+
         return
+
     end
+
 
     local result =
         MT_SmartWatch.ChipSystem.removeChip(
@@ -669,14 +1051,19 @@ function Debug.testRemoveTimeChip()
             "Base.MTSW_FChip_Time"
         )
 
+
     print(
-        "[MT Smart Watch] Time Chip Remove Result: "
+        "[MT Smart Watch] "
+        .. "Time Chip Remove Result: "
         .. tostring(result)
     )
 
+
     print(
-        "[MT Smart Watch] ========== REMOVE TIME CHIP END =========="
+        "[MT Smart Watch] "
+        .. "========== REMOVE TIME CHIP END =========="
     )
+
 end
 
 
@@ -687,38 +1074,66 @@ end
 
 function Debug.testInstallTimeChip()
 
-    print("[MT Smart Watch] ========== INSTALL TIME CHIP ==========")
+    print(
+        "[MT Smart Watch] "
+        .. "========== INSTALL TIME CHIP =========="
+    )
+
 
     local player =
         getPlayer()
 
+
     if not player then
-        print("[MT Smart Watch] ERROR: Player not found")
+
+        print(
+            "[MT Smart Watch] ERROR: Player not found"
+        )
+
         return
+
     end
+
 
     local watch =
-        MT_SmartWatch.Watch.getEquippedWatch(player)
+        MT_SmartWatch.Watch.getEquippedWatch(
+            player
+        )
+
 
     if not watch then
-        print("[MT Smart Watch] ERROR: Smart Watch not equipped")
+
+        print(
+            "[MT Smart Watch] "
+            .. "ERROR: Smart Watch not equipped"
+        )
+
         return
+
     end
+
 
     local inventory =
         player:getInventory()
+
 
     local chip =
         inventory:getFirstType(
             "Base.MTSW_FChip_Time"
         )
 
+
     if not chip then
+
         print(
-            "[MT Smart Watch] ERROR: Time Chip not found in inventory"
+            "[MT Smart Watch] "
+            .. "ERROR: Time Chip not found in inventory"
         )
+
         return
+
     end
+
 
     local result =
         MT_SmartWatch.ChipSystem.installChip(
@@ -726,14 +1141,19 @@ function Debug.testInstallTimeChip()
             chip
         )
 
+
     print(
-        "[MT Smart Watch] Time Chip Install Result: "
+        "[MT Smart Watch] "
+        .. "Time Chip Install Result: "
         .. tostring(result)
     )
 
+
     print(
-        "[MT Smart Watch] ========== INSTALL TIME CHIP END =========="
+        "[MT Smart Watch] "
+        .. "========== INSTALL TIME CHIP END =========="
     )
+
 end
 
 
@@ -744,38 +1164,66 @@ end
 
 function Debug.testInstallRadioChip()
 
-    print("[MT Smart Watch] ========== INSTALL RADIO CHIP ==========")
+    print(
+        "[MT Smart Watch] "
+        .. "========== INSTALL RADIO CHIP =========="
+    )
+
 
     local player =
         getPlayer()
 
+
     if not player then
-        print("[MT Smart Watch] ERROR: Player not found")
+
+        print(
+            "[MT Smart Watch] ERROR: Player not found"
+        )
+
         return
+
     end
+
 
     local watch =
-        MT_SmartWatch.Watch.getEquippedWatch(player)
+        MT_SmartWatch.Watch.getEquippedWatch(
+            player
+        )
+
 
     if not watch then
-        print("[MT Smart Watch] ERROR: Smart Watch not equipped")
+
+        print(
+            "[MT Smart Watch] "
+            .. "ERROR: Smart Watch not equipped"
+        )
+
         return
+
     end
+
 
     local inventory =
         player:getInventory()
+
 
     local chip =
         inventory:getFirstType(
             "Base.MTSW_AChip_Radio"
         )
 
+
     if not chip then
+
         print(
-            "[MT Smart Watch] ERROR: Radio Chip not found in inventory"
+            "[MT Smart Watch] "
+            .. "ERROR: Radio Chip not found in inventory"
         )
+
         return
+
     end
+
 
     local result =
         MT_SmartWatch.ChipSystem.installChip(
@@ -783,14 +1231,19 @@ function Debug.testInstallRadioChip()
             chip
         )
 
+
     print(
-        "[MT Smart Watch] Radio Chip Install Result: "
+        "[MT Smart Watch] "
+        .. "Radio Chip Install Result: "
         .. tostring(result)
     )
 
+
     print(
-        "[MT Smart Watch] ========== INSTALL RADIO CHIP END =========="
+        "[MT Smart Watch] "
+        .. "========== INSTALL RADIO CHIP END =========="
     )
+
 end
 
 
@@ -801,22 +1254,30 @@ end
 
 function Debug.testOpenRadio()
 
-    print("[MT Smart Watch] ========== RADIO APP TOGGLE ==========")
+    print(
+        "[MT Smart Watch] "
+        .. "========== RADIO APP TOGGLE =========="
+    )
+
 
     local RadioApp =
         MT_SmartWatch.RadioApp
 
+
     if not RadioApp then
 
         print(
-            "[MT Smart Watch] RadioApp ERROR: module not found"
+            "[MT Smart Watch] "
+            .. "RadioApp ERROR: module not found"
         )
 
         print(
-            "[MT Smart Watch] ========== RADIO APP TOGGLE END =========="
+            "[MT Smart Watch] "
+            .. "========== RADIO APP TOGGLE END =========="
         )
 
         return
+
     end
 
 
@@ -828,49 +1289,64 @@ function Debug.testOpenRadio()
         and RadioApp.isActive() then
 
         print(
-            "[MT Smart Watch] RadioApp: ACTIVE -> CLOSE"
+            "[MT Smart Watch] "
+            .. "RadioApp: ACTIVE -> CLOSE"
         )
+
 
         if not RadioApp.close then
 
             print(
-                "[MT Smart Watch] RadioApp ERROR: close() not found"
+                "[MT Smart Watch] "
+                .. "RadioApp ERROR: close() not found"
             )
 
             print(
-                "[MT Smart Watch] ========== RADIO APP TOGGLE END =========="
+                "[MT Smart Watch] "
+                .. "========== RADIO APP TOGGLE END =========="
             )
 
             return
+
         end
+
 
         RadioApp.close()
 
+
         print(
-            "[MT Smart Watch] Radio Close Result: true"
+            "[MT Smart Watch] "
+            .. "Radio Close Result: true"
         )
 
     else
 
         print(
-            "[MT Smart Watch] RadioApp: INACTIVE -> OPEN"
+            "[MT Smart Watch] "
+            .. "RadioApp: INACTIVE -> OPEN"
         )
+
 
         if not RadioApp.open then
 
             print(
-                "[MT Smart Watch] RadioApp ERROR: open() not found"
+                "[MT Smart Watch] "
+                .. "RadioApp ERROR: open() not found"
             )
 
             print(
-                "[MT Smart Watch] ========== RADIO APP TOGGLE END =========="
+                "[MT Smart Watch] "
+                .. "========== RADIO APP TOGGLE END =========="
             )
 
             return
+
         end
+
 
         local result =
             RadioApp.open()
+
 
         print(
             "[MT Smart Watch] Radio Open Result: "
@@ -881,42 +1357,74 @@ function Debug.testOpenRadio()
 
 
     print(
-        "[MT Smart Watch] ========== RADIO APP TOGGLE END =========="
+        "[MT Smart Watch] "
+        .. "========== RADIO APP TOGGLE END =========="
     )
+
 end
 
 
 --------------------------------------------------
--- INSTALL EMP TACTICAL CHIP
+-- USE EMP TACTICAL CHIP
 --------------------------------------------------
 
 function Debug.testUseEMP()
 
-    print("[MT Smart Watch] ========== USE EMP TACTICAL CHIP ==========")
+    print(
+        "[MT Smart Watch] "
+        .. "========== USE EMP TACTICAL CHIP =========="
+    )
+
 
     local player =
         getPlayer()
 
+
     if not player then
-        print("[MT Smart Watch] ERROR: Player not found")
+
+        print(
+            "[MT Smart Watch] ERROR: Player not found"
+        )
+
         return
+
     end
+
 
     local watch =
-        MT_SmartWatch.Watch.getEquippedWatch(player)
+        MT_SmartWatch.Watch.getEquippedWatch(
+            player
+        )
+
 
     if not watch then
-        print("[MT Smart Watch] ERROR: Smart Watch not equipped")
+
+        print(
+            "[MT Smart Watch] "
+            .. "ERROR: Smart Watch not equipped"
+        )
+
         return
+
     end
+
 
     local EMP =
         MT_SmartWatch.TacticalEMP
 
-    if not EMP or not EMP.activate then
-        print("[MT Smart Watch] ERROR: TacticalEMP module not found")
+
+    if not EMP
+        or not EMP.activate then
+
+        print(
+            "[MT Smart Watch] "
+            .. "ERROR: TacticalEMP module not found"
+        )
+
         return
+
     end
+
 
     local result =
         EMP.activate(
@@ -924,14 +1432,18 @@ function Debug.testUseEMP()
             watch
         )
 
+
     print(
         "[MT Smart Watch] EMP Use Result: "
         .. tostring(result)
     )
 
+
     print(
-        "[MT Smart Watch] ========== USE EMP TACTICAL CHIP END =========="
+        "[MT Smart Watch] "
+        .. "========== USE EMP TACTICAL CHIP END =========="
     )
+
 end
 
 
@@ -941,36 +1453,66 @@ end
 
 function Debug.testInstallEMP()
 
-    print("[MT Smart Watch] ========== INSTALL EMP TACTICAL CHIP ==========")
+    print(
+        "[MT Smart Watch] "
+        .. "========== INSTALL EMP TACTICAL CHIP =========="
+    )
+
 
     local player =
         getPlayer()
 
+
     if not player then
-        print("[MT Smart Watch] ERROR: Player not found")
+
+        print(
+            "[MT Smart Watch] ERROR: Player not found"
+        )
+
         return
+
     end
+
 
     local watch =
-        MT_SmartWatch.Watch.getEquippedWatch(player)
+        MT_SmartWatch.Watch.getEquippedWatch(
+            player
+        )
+
 
     if not watch then
-        print("[MT Smart Watch] ERROR: Smart Watch not equipped")
+
+        print(
+            "[MT Smart Watch] "
+            .. "ERROR: Smart Watch not equipped"
+        )
+
         return
+
     end
+
 
     local inventory =
         player:getInventory()
+
 
     local chip =
         inventory:getFirstType(
             "Base.MTSW_TChip_EMP"
         )
 
+
     if not chip then
-        print("[MT Smart Watch] ERROR: EMP Tactical Chip not found in inventory")
+
+        print(
+            "[MT Smart Watch] "
+            .. "ERROR: EMP Tactical Chip not found in inventory"
+        )
+
         return
+
     end
+
 
     local result =
         MT_SmartWatch.ChipSystem.installChip(
@@ -978,14 +1520,19 @@ function Debug.testInstallEMP()
             chip
         )
 
+
     print(
-        "[MT Smart Watch] EMP Install Result: "
+        "[MT Smart Watch] "
+        .. "EMP Install Result: "
         .. tostring(result)
     )
 
+
     print(
-        "[MT Smart Watch] ========== INSTALL EMP TACTICAL CHIP END =========="
+        "[MT Smart Watch] "
+        .. "========== INSTALL EMP TACTICAL CHIP END =========="
     )
+
 end
 
 
@@ -995,23 +1542,44 @@ end
 
 function Debug.testRemoveEMP()
 
-    print("[MT Smart Watch] ========== REMOVE EMP TACTICAL CHIP ==========")
+    print(
+        "[MT Smart Watch] "
+        .. "========== REMOVE EMP TACTICAL CHIP =========="
+    )
+
 
     local player =
         getPlayer()
 
+
     if not player then
-        print("[MT Smart Watch] ERROR: Player not found")
+
+        print(
+            "[MT Smart Watch] ERROR: Player not found"
+        )
+
         return
+
     end
+
 
     local watch =
-        MT_SmartWatch.Watch.getEquippedWatch(player)
+        MT_SmartWatch.Watch.getEquippedWatch(
+            player
+        )
+
 
     if not watch then
-        print("[MT Smart Watch] ERROR: Smart Watch not equipped")
+
+        print(
+            "[MT Smart Watch] "
+            .. "ERROR: Smart Watch not equipped"
+        )
+
         return
+
     end
+
 
     local result =
         MT_SmartWatch.ChipSystem.removeChip(
@@ -1020,17 +1588,20 @@ function Debug.testRemoveEMP()
             "Base.MTSW_TChip_EMP"
         )
 
+
     print(
-        "[MT Smart Watch] EMP Remove Result: "
+        "[MT Smart Watch] "
+        .. "EMP Remove Result: "
         .. tostring(result)
     )
 
+
     print(
-        "[MT Smart Watch] ========== REMOVE EMP TACTICAL CHIP END =========="
+        "[MT Smart Watch] "
+        .. "========== REMOVE EMP TACTICAL CHIP END =========="
     )
+
 end
-
-
 
 
 --------------------------------------------------
@@ -1039,32 +1610,56 @@ end
 
 function Debug.testEMPStatus()
 
-    print("[MT Smart Watch] ========== EMP STATUS ==========")
+    print(
+        "[MT Smart Watch] "
+        .. "========== EMP STATUS =========="
+    )
+
 
     local player =
         getPlayer()
 
+
     if not player then
-        print("[MT Smart Watch] ERROR: Player not found")
+
+        print(
+            "[MT Smart Watch] ERROR: Player not found"
+        )
+
         return
+
     end
+
 
     local watch =
-        MT_SmartWatch.Watch.getEquippedWatch(player)
+        MT_SmartWatch.Watch.getEquippedWatch(
+            player
+        )
+
 
     if not watch then
-        print("[MT Smart Watch] ERROR: Smart Watch not equipped")
+
+        print(
+            "[MT Smart Watch] "
+            .. "ERROR: Smart Watch not equipped"
+        )
+
         return
+
     end
+
 
     local EMP =
         MT_SmartWatch.TacticalEMP
 
+
     local Battery =
         MT_SmartWatch.Battery
 
+
     local ChipSystem =
         MT_SmartWatch.ChipSystem
+
 
     print(
         "[MT Smart Watch] EMP Installed: "
@@ -1078,27 +1673,121 @@ function Debug.testEMPStatus()
         )
     )
 
+
     if Battery then
+
         print(
             "[MT Smart Watch] Battery: "
-            .. tostring(Battery.getCurrent(watch))
-            .. " / "
-            .. tostring(Battery.getMax(watch))
-        )
-    end
-
-    if EMP and EMP.getCooldownRemaining then
-        print(
-            "[MT Smart Watch] EMP Cooldown Remaining: "
             .. string.format(
-                "%.1f",
-                EMP.getCooldownRemaining(watch)
+                "%.2f",
+                Battery.getCurrent(watch)
             )
-            .. " sec"
+            .. " / "
+            .. tostring(
+                Battery.getMax(watch)
+            )
         )
+
     end
 
-    print("[MT Smart Watch] ========== EMP STATUS END ==========")
+
+    if EMP then
+
+        --------------------------------------------------
+        -- COOLDOWN
+        -- Остаток кулдауна в ИГРОВЫХ минутах.
+        -- Основной путь: getCooldownRemainingMinutes.
+        -- Fallback: getCooldownRemaining (сек) / 60.
+        --------------------------------------------------
+
+        local remainingMin =
+            nil
+
+
+        if type(
+            EMP.getCooldownRemainingMinutes
+        ) == "function" then
+
+            remainingMin =
+                EMP.getCooldownRemainingMinutes(
+                    watch
+                )
+
+        elseif type(
+            EMP.getCooldownRemaining
+        ) == "function" then
+
+            remainingMin =
+                EMP.getCooldownRemaining(
+                    watch
+                ) / 60
+
+        end
+
+
+        if remainingMin then
+
+            print(
+                "[MT Smart Watch] "
+                .. "EMP Cooldown Remaining: "
+                .. string.format(
+                    "%.1f",
+                    remainingMin
+                )
+                .. " game min"
+            )
+
+        end
+
+
+        --------------------------------------------------
+        -- ACTIVE EFFECT
+        -- Остаток активного эффекта в ИГРОВЫХ минутах.
+        -- 0 = эффект не активен.
+        --------------------------------------------------
+
+        if type(
+            EMP.getActiveRemainingGameMinutes
+        ) == "function" then
+
+            local activeMin =
+                EMP.getActiveRemainingGameMinutes(
+                    watch
+                )
+
+
+            if activeMin
+                and activeMin > 0 then
+
+                print(
+                    "[MT Smart Watch] "
+                    .. "EMP Effect Remaining: "
+                    .. string.format(
+                        "%.1f",
+                        activeMin
+                    )
+                    .. " game min"
+                )
+
+            else
+
+                print(
+                    "[MT Smart Watch] "
+                    .. "EMP Effect: inactive"
+                )
+
+            end
+
+        end
+
+    end
+
+
+    print(
+        "[MT Smart Watch] "
+        .. "========== EMP STATUS END =========="
+    )
+
 end
 
 
@@ -1108,43 +1797,84 @@ end
 
 function Debug.testTacticalSlots()
 
-    print("[MT Smart Watch] ========== TACTICAL SLOTS TEST ==========")
+    print(
+        "[MT Smart Watch] "
+        .. "========== TACTICAL SLOTS TEST =========="
+    )
+
 
     local player =
         getPlayer()
 
+
     if not player then
-        print("[MT Smart Watch] ERROR: Player not found")
+
+        print(
+            "[MT Smart Watch] ERROR: Player not found"
+        )
+
         return
+
     end
+
 
     local watch =
-        MT_SmartWatch.Watch.getEquippedWatch(player)
+        MT_SmartWatch.Watch.getEquippedWatch(
+            player
+        )
+
 
     if not watch then
-        print("[MT Smart Watch] ERROR: Smart Watch not equipped")
+
+        print(
+            "[MT Smart Watch] "
+            .. "ERROR: Smart Watch not equipped"
+        )
+
         return
+
     end
+
 
     local ChipSystem =
         MT_SmartWatch.ChipSystem
 
+
     if not ChipSystem then
-        print("[MT Smart Watch] ERROR: ChipSystem module not found")
+
+        print(
+            "[MT Smart Watch] "
+            .. "ERROR: ChipSystem module not found"
+        )
+
         return
+
     end
 
+
     local tacticalSlots =
-        ChipSystem.getTacticalSlots(watch)
+        ChipSystem.getTacticalSlots(
+            watch
+        )
+
 
     local tacticalCount =
-        ChipSystem.getTacticalChipCount(watch)
+        ChipSystem.getTacticalChipCount(
+            watch
+        )
+
 
     local freeTacticalSlots =
-        ChipSystem.getFreeTacticalSlots(watch)
+        ChipSystem.getFreeTacticalSlots(
+            watch
+        )
+
 
     local hasFreeSlot =
-        ChipSystem.hasFreeTacticalSlot(watch)
+        ChipSystem.hasFreeTacticalSlot(
+            watch
+        )
+
 
     print(
         "[MT Smart Watch] Tactical Slots: "
@@ -1153,17 +1883,26 @@ function Debug.testTacticalSlots()
         .. tostring(tacticalSlots)
     )
 
+
     print(
-        "[MT Smart Watch] Free Tactical Slots: "
+        "[MT Smart Watch] "
+        .. "Free Tactical Slots: "
         .. tostring(freeTacticalSlots)
     )
 
+
     print(
-        "[MT Smart Watch] Has Free Tactical Slot: "
+        "[MT Smart Watch] "
+        .. "Has Free Tactical Slot: "
         .. tostring(hasFreeSlot)
     )
 
-    print("[MT Smart Watch] ========== TACTICAL SLOTS TEST END ==========")
+
+    print(
+        "[MT Smart Watch] "
+        .. "========== TACTICAL SLOTS TEST END =========="
+    )
+
 end
 
 
@@ -1173,22 +1912,30 @@ end
 
 function Debug.printStatus()
 
-    print("[MT Smart Watch] ========== DEBUG STATUS ==========")
+    print(
+        "[MT Smart Watch] "
+        .. "========== DEBUG STATUS =========="
+    )
+
 
     local watch =
         getEquippedWatch()
 
+
     if not watch then
 
         print(
-            "[MT Smart Watch] Status: Watch not equipped"
+            "[MT Smart Watch] "
+            .. "Status: Watch not equipped"
         )
 
         print(
-            "[MT Smart Watch] ========== DEBUG STATUS END =========="
+            "[MT Smart Watch] "
+            .. "========== DEBUG STATUS END =========="
         )
 
         return
+
     end
 
 
@@ -1199,10 +1946,13 @@ function Debug.printStatus()
         )
     )
 
+
     print(
         "[MT Smart Watch] SmartWatch: "
         .. tostring(
-            MT_SmartWatch.Watch.isSmartWatch(watch)
+            MT_SmartWatch.Watch.isSmartWatch(
+                watch
+            )
         )
     )
 
@@ -1212,7 +1962,11 @@ function Debug.printStatus()
     --------------------------------------------------
 
     local core =
-        MT_SmartWatch.OSCore.getInstalledFullType(watch)
+        MT_SmartWatch.OSCore
+            .getInstalledFullType(
+                watch
+            )
+
 
     print(
         "[MT Smart Watch] Core: "
@@ -1226,12 +1980,17 @@ function Debug.printStatus()
 
     print(
         "[MT Smart Watch] Battery: "
-        .. tostring(
-            MT_SmartWatch.Battery.getCurrent(watch)
+        .. string.format(
+            "%.2f",
+            MT_SmartWatch.Battery.getCurrent(
+                watch
+            )
         )
         .. " / "
         .. tostring(
-            MT_SmartWatch.Battery.getMax(watch)
+            MT_SmartWatch.Battery.getMax(
+                watch
+            )
         )
     )
 
@@ -1243,11 +2002,13 @@ function Debug.printStatus()
     print(
         "[MT Smart Watch] Memory: "
         .. tostring(
-            MT_SmartWatch.ChipSystem.getUsedMemory(watch)
+            MT_SmartWatch.ChipSystem
+                .getUsedMemory(watch)
         )
         .. " / "
         .. tostring(
-            MT_SmartWatch.ChipSystem.getMaxMemory(watch)
+            MT_SmartWatch.ChipSystem
+                .getMaxMemory(watch)
         )
     )
 
@@ -1259,7 +2020,9 @@ function Debug.printStatus()
     local RadioApp =
         MT_SmartWatch.RadioApp
 
-    if RadioApp and RadioApp.isActive then
+
+    if RadioApp
+        and RadioApp.isActive then
 
         print(
             "[MT Smart Watch] Radio Active: "
@@ -1271,10 +2034,16 @@ function Debug.printStatus()
     else
 
         print(
-            "[MT Smart Watch] Radio Active: false"
+            "[MT Smart Watch] "
+            .. "Radio Active: false"
         )
 
     end
 
-    print("[MT Smart Watch] ========== DEBUG STATUS END ==========")
+
+    print(
+        "[MT Smart Watch] "
+        .. "========== DEBUG STATUS END =========="
+    )
+
 end

@@ -13,6 +13,103 @@ local Battery =
 
 
 --------------------------------------------------
+-- FIX A: VALUE PRECISION
+-- Все записи в ModData округляются до 2 знаков.
+-- Убирает IEEE-754 мусор:
+--   150 - 0.1 - ...  =>  "145.9", а не 145.8999...
+--------------------------------------------------
+
+local VALUE_PRECISION =
+    100
+
+
+--------------------------------------------------
+-- FIX 1: THROTTLE CONFIG
+-- Минимальный интервал между «рядовыми»
+-- сетевыми синхронизациями, мс.
+-- События crossedZero / reachedFull
+-- игнорируют этот кулдаун.
+--------------------------------------------------
+
+local SYNC_MIN_INTERVAL_MS =
+    2000
+
+
+--------------------------------------------------
+-- TIMESTAMP DETECTION
+-- PZ предоставляет разные API в разных билдах:
+--   getTimestampMs() -> миллисекунды
+--   getTimestamp()   -> миллисекунды (в актуальных)
+-- Fallback через os.clock() -> секунды * 1000.
+-- Определяем один раз при загрузке.
+--------------------------------------------------
+
+local _timestampSource =
+    "none"
+
+
+local function nowMs()
+
+    if type(getTimestampMs) == "function" then
+
+        _timestampSource =
+            "getTimestampMs"
+
+
+        return
+            getTimestampMs()
+
+    end
+
+
+    if type(getTimestamp) == "function" then
+
+        _timestampSource =
+            "getTimestamp"
+
+
+        return
+            getTimestamp()
+
+    end
+
+
+    _timestampSource =
+        "os.clock"
+
+
+    return
+        math.floor(
+            os.clock()
+            * 1000
+        )
+
+end
+
+
+--------------------------------------------------
+-- ROUND
+-- Округление half-up до N знаков.
+--------------------------------------------------
+
+function Battery.round(
+    value
+)
+
+    if type(value) ~= "number" then
+        return 0
+    end
+
+
+    return
+        math.floor(
+            value * VALUE_PRECISION + 0.5
+        ) / VALUE_PRECISION
+
+end
+
+
+--------------------------------------------------
 -- GET MAX BATTERY
 --------------------------------------------------
 
@@ -22,10 +119,6 @@ function Battery.getMax(watch)
         return 0
     end
 
-
-    --------------------------------------------------
-    -- OS CORE
-    --------------------------------------------------
 
     local OSCore =
         MT_SmartWatch.OSCore
@@ -51,20 +144,10 @@ function Battery.getMax(watch)
         )
 
 
-    --------------------------------------------------
-    -- NO CORE
-    --------------------------------------------------
-
     if not coreData then
-
         return 0
-
     end
 
-
-    --------------------------------------------------
-    -- CAPACITY
-    --------------------------------------------------
 
     return
         coreData.batteryCapacity
@@ -122,6 +205,10 @@ end
 
 --------------------------------------------------
 -- SET CURRENT BATTERY
+-- Единственная точка записи заряда.
+-- Кламп в [0, max] + округление до 2 знаков.
+-- MP-синхронизация троттлинговая, с приоритетом
+-- для событий «батарея кончилась» и «заряд полный».
 --------------------------------------------------
 
 function Battery.setCurrent(
@@ -184,65 +271,13 @@ function Battery.setCurrent(
 
 
     --------------------------------------------------
-    -- MOD DATA
+    -- FIX A: ROUND
     --------------------------------------------------
 
-    local modData =
-        watch:getModData()
-
-
-    if not modData then
-        return false
-    end
-
-
-    modData.MT_SmartWatch =
-        modData.MT_SmartWatch
-        or {}
-
-
-    modData.MT_SmartWatch.Battery =
-        modData.MT_SmartWatch.Battery
-        or {}
-
-
-    modData.MT_SmartWatch.Battery.current =
-        value
-
-
-    return true
-
-end
-
-
---------------------------------------------------
--- INITIALIZE
---------------------------------------------------
-
-function Battery.initialize(
-    watch
-)
-
-    if not watch then
-        return false
-    end
-
-
-    local max =
-        Battery.getMax(
-            watch
+    value =
+        Battery.round(
+            value
         )
-
-
-    --------------------------------------------------
-    -- NO CORE
-    --------------------------------------------------
-
-    if max <= 0 then
-
-        return false
-
-    end
 
 
     --------------------------------------------------
@@ -273,22 +308,149 @@ function Battery.initialize(
 
 
     --------------------------------------------------
-    -- INITIAL VALUE
+    -- PREVIOUS VALUE
     --------------------------------------------------
+
+    local previous =
+        tonumber(battery.current)
+        or 0
+
+
+    battery.current =
+        value
+
+
+    --------------------------------------------------
+    -- MP SYNC (THROTTLED, PRIORITIZED)
+    --
+    -- crossedZero  -> батарея умерла (previous > 0, value <= 0)
+    -- reachedFull  -> батарея заряжена до максимума
+    -- visibleChange-> изменилась целая часть
+    --
+    -- crossedZero и reachedFull игнорируют cooldown:
+    -- это моменты, ради которых синк и существует.
+    --------------------------------------------------
+
+    if watch.transmitModData then
+
+        local now =
+            nowMs()
+
+
+        local last =
+            tonumber(
+                battery.lastSync
+            )
+            or 0
+
+
+        local crossedZero =
+            ( previous > 0 )
+            and ( value <= 0 )
+
+
+        local reachedFull =
+            ( value >= max )
+            and ( previous < max )
+
+
+        local visibleChange =
+            math.floor( previous )
+            ~= math.floor( value )
+
+
+        local cooldownPassed =
+            ( now - last )
+            >= SYNC_MIN_INTERVAL_MS
+
+
+        if crossedZero
+            or reachedFull
+            or (
+                cooldownPassed
+                and visibleChange
+            ) then
+
+            battery.lastSync =
+                now
+
+
+            watch:transmitModData()
+
+        end
+
+    end
+
+
+    return true
+
+end
+
+
+--------------------------------------------------
+-- INITIALIZE
+--------------------------------------------------
+
+function Battery.initialize(
+    watch
+)
+
+    if not watch then
+        return false
+    end
+
+
+    local max =
+        Battery.getMax(
+            watch
+        )
+
+
+    if max <= 0 then
+        return false
+    end
+
+
+    local modData =
+        watch:getModData()
+
+
+    if not modData then
+        return false
+    end
+
+
+    modData.MT_SmartWatch =
+        modData.MT_SmartWatch
+        or {}
+
+
+    modData.MT_SmartWatch.Battery =
+        modData.MT_SmartWatch.Battery
+        or {}
+
+
+    local battery =
+        modData.MT_SmartWatch.Battery
+
 
     if battery.current == nil then
 
         battery.current =
-            max
+            Battery.round(
+                max
+            )
 
     else
 
         battery.current =
-            math.max(
-                0,
-                math.min(
-                    battery.current,
-                    max
+            Battery.round(
+                math.max(
+                    0,
+                    math.min(
+                        battery.current,
+                        max
+                    )
                 )
             )
 
@@ -301,7 +463,8 @@ end
 
 
 --------------------------------------------------
--- DRAIN
+-- DRAIN (STRICT)
+-- Транзакция: всё или ничего.
 --------------------------------------------------
 
 function Battery.drain(
@@ -319,14 +482,15 @@ function Battery.drain(
     end
 
 
+    amount =
+        tonumber(amount)
+        or 0
+
+
     if amount <= 0 then
         return true
     end
 
-
-    --------------------------------------------------
-    -- CURRENT
-    --------------------------------------------------
 
     local current =
         Battery.getCurrent(
@@ -334,15 +498,76 @@ function Battery.drain(
         )
 
 
-    --------------------------------------------------
-    -- SET
-    --------------------------------------------------
+    if current < amount then
+
+        return false
+
+    end
+
 
     return
         Battery.setCurrent(
             watch,
             current - amount
         )
+
+end
+
+
+--------------------------------------------------
+-- DRAIN UP TO (PASSIVE)
+--------------------------------------------------
+
+function Battery.drainUpTo(
+    watch,
+    amount
+)
+
+    if not watch then
+        return 0
+    end
+
+
+    amount =
+        tonumber(amount)
+        or 0
+
+
+    if amount <= 0 then
+        return 0
+    end
+
+
+    local current =
+        Battery.getCurrent(
+            watch
+        )
+
+
+    if current <= 0 then
+        return 0
+    end
+
+
+    local drained =
+        math.min(
+            current,
+            amount
+        )
+
+
+    if not Battery.setCurrent(
+        watch,
+        current - drained
+    ) then
+
+        return 0
+
+    end
+
+
+    return
+        drained
 
 end
 
@@ -365,10 +590,6 @@ function Battery.isEmpty(
             watch
         )
 
-
-    --------------------------------------------------
-    -- NO CORE
-    --------------------------------------------------
 
     if max <= 0 then
         return true
@@ -417,14 +638,11 @@ function Battery.getPercent(
         )
 
 
-    local percent =
+    return
         (
             current
             / max
         ) * 100
-
-
-    return percent
 
 end
 
@@ -477,14 +695,21 @@ function Battery.debug(
     print(
         "[MT Smart Watch] "
         .. "Battery Current: "
-        .. tostring(current)
+        .. string.format(
+            "%.2f",
+            current
+        )
     )
 
 
     print(
         "[MT Smart Watch] "
         .. "Battery Percent: "
-        .. tostring(percent)
+        .. string.format(
+            "%.2f",
+            percent
+        )
+        .. "%"
     )
 
 
@@ -503,9 +728,19 @@ end
 
 --------------------------------------------------
 -- LOADED
+-- Печатаем, какой источник времени выбран —
+-- видно сразу в консоли, не надо угадывать.
 --------------------------------------------------
+
+-- Прогреваем детектор один раз, чтобы print
+-- ниже показал реальный источник.
+nowMs()
+
 
 print(
     "[MT Smart Watch] "
-    .. "Battery system loaded"
+    .. "Battery system loaded "
+    .. "(sync timer: "
+    .. tostring(_timestampSource)
+    .. ")"
 )

@@ -14,6 +14,12 @@ local Register =
 
 --------------------------------------------------
 -- OFFICIAL TACTICAL CHIP DATA
+--
+-- Единицы:
+--   batteryCost        — единицы заряда батареи
+--   cooldownMinutes    — ИГРОВЫЕ минуты (worldAgeHours)
+--   radius             — блоки в мире
+--   durationMinutes    — ИГРОВЫЕ минуты (worldAgeHours)
 --------------------------------------------------
 
 Register.Data = {
@@ -26,8 +32,8 @@ Register.Data = {
         tier = 1,
         memoryCost = 8,
 
-        batteryCost = 1,
-        cooldown = 30,
+        batteryCost = 50,
+        cooldownMinutes = 31,
 
         radius = 15,
         durationMinutes = 30,
