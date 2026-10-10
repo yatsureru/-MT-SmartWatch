@@ -1,5 +1,19 @@
 {
 	
-	"UI_MTSW_EMP_ObjectBlocked": "I can't right now. The object is under EMP."
+	"UI_MTSW_EMP_ObjectBlocked"			: "I can't right now. The object is under EMP.",
+	
+	"UI_MTSW_HUD_Title"					: "MT SmartWatch",
+	"UI_MTSW_HUD_PinIcon"				: "Pin icon",
+	"UI_MTSW_HUD_IconSize"				: "Icon size",
+	"UI_MTSW_HUD_FadeTime"				: "Fade time",
+	"UI_MTSW_HUD_Save"					: "Save",
+	"UI_MTSW_HUD_Fade_Never"			: "Never",
+	"UI_MTSW_HUD_Fade_05"				: "0.5 sec",
+	"UI_MTSW_HUD_Fade_1"				: "1 sec",
+	"UI_MTSW_HUD_Fade_2"				: "2 sec",
+	"UI_MTSW_HUD_Fade_3"				: "3 sec",
+	"UI_MTSW_HUD_Fade_4"				: "4 sec",
+	"UI_MTSW_HUD_Fade_5"				: "5 sec",
+	"UI_MTSW_HUD_Fade_6"				: "6 sec",
 	
 }

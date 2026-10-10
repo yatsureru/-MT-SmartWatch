@@ -1,5 +1,19 @@
 {
 	
-	"UI_MTSW_EMP_ObjectBlocked": "Сейчас не могу. Объект находится под ЭМП."
+	"UI_MTSW_EMP_ObjectBlocked"			: "Сейчас не могу. Объект находится под ЭМП.",
+	
+	"UI_MTSW_HUD_Title"					: "MT SmartWatch",
+	"UI_MTSW_HUD_PinIcon"				: "Закрепить иконку",
+	"UI_MTSW_HUD_IconSize"				: "Размер иконки",
+	"UI_MTSW_HUD_FadeTime"				: "Время до исчезновения",
+	"UI_MTSW_HUD_Save"					: "Сохранить",
+	"UI_MTSW_HUD_Fade_Never"			: "Никогда",
+	"UI_MTSW_HUD_Fade_05"				: "0.5 сек",
+	"UI_MTSW_HUD_Fade_1"				: "1 сек",
+	"UI_MTSW_HUD_Fade_2"				: "2 сек",
+	"UI_MTSW_HUD_Fade_3"				: "3 сек",
+	"UI_MTSW_HUD_Fade_4"				: "4 сек",
+	"UI_MTSW_HUD_Fade_5"				: "5 сек",
+	"UI_MTSW_HUD_Fade_6"				: "6 сек",
 	
 }
