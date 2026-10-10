@@ -43,6 +43,12 @@
 │   │   │   │   │       │   └── Chip_Time
 │   │   │   │   │       │       └── Time.lua
 │   │   │   │   │       ├── HUD
+│   │   │   │   │       │   ├── HUD_Base.lua
+│   │   │   │   │       │   ├── HUD_Icon.lua
+│   │   │   │   │       │   ├── HUD_Init.lua
+│   │   │   │   │       │   ├── HUD_ModOptions.lua
+│   │   │   │   │       │   ├── HUD_SettingsPanel.lua
+│   │   │   │   │       │   └── HUD_State.lua
 │   │   │   │   │       ├── Debug.lua
 │   │   │   │   │       └── DebugKey.lua
 │   │   │   │   └── shared
@@ -53,13 +59,6 @@
 │   │   │   │       │   ├── FunctionalChips
 │   │   │   │       │   │   ├── FunctionalChip.lua
 │   │   │   │       │   │   └── FunctionalChipRegister.lua
-│   │   │   │       │   ├── HUD
-│   │   │   │       │   │   ├── HUD_Base.lua
-│   │   │   │       │   │   ├── HUD_Icon.lua
-│   │   │   │       │   │   ├── HUD_Init.lua
-│   │   │   │       │   │   ├── HUD_ModOptions.lua
-│   │   │   │       │   │   ├── HUD_SettingsPanel.lua
-│   │   │   │       │   │   └── HUD_State.lua
 │   │   │   │       │   ├── OSCore
 │   │   │   │       │   │   ├── OScore.lua
 │   │   │   │       │   │   └── OScoreRegister.lua
