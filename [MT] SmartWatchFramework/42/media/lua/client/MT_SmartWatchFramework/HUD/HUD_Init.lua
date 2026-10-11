@@ -1,18 +1,17 @@
 -- HUD_Init.lua
--- Entry point HUD-подсистемы.
-
 require "MT_SmartWatchFramework/HUD/HUD_State"
 require "MT_SmartWatchFramework/HUD/HUD_Base"
 require "MT_SmartWatchFramework/HUD/HUD_SettingsPanel"
+require "MT_SmartWatchFramework/HUD/HUD_Battery"
 require "MT_SmartWatchFramework/HUD/HUD_Icon"
--- require "MT_SmartWatchFramework/HUD/HUD_ModOptions"   ← отключено, настройки в ПКМ-панели
+-- require "MT_SmartWatchFramework/HUD/HUD_ModOptions"  (отключено)
 
 MT_SmartWatch = MT_SmartWatch or {}
 MT_SmartWatch.HUD = MT_SmartWatch.HUD or {}
 
 local State = MT_SmartWatch.HUD.State
 
--- Точка расширения: полный интерфейс часов
+-- Точка расширения
 if not MT_SmartWatch.HUD.openInterface then
     MT_SmartWatch.HUD.openInterface = function()
         print("[MT Smart Watch - HUD] openInterface() — TODO: полный интерфейс часов")
@@ -63,12 +62,11 @@ local function onPlayerUpdate(player)
         icon:setIconSize(wantSize)
     end
 
-    icon.visible       = State.hasWatch
-    icon.useOScoreIcon = State.hasOScore
+    icon.visible    = State.hasWatch
+    icon.hasOSCore  = State.hasOScore
 end
 
 local function onGameStart()
-    -- .ini — единственный источник правды
     State.load()
 
     local icon = MT_SmartWatch.HUD.icon

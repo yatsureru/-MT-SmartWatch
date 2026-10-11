@@ -44,6 +44,7 @@
 │   │   │   │   │       │       └── Time.lua
 │   │   │   │   │       ├── HUD
 │   │   │   │   │       │   ├── HUD_Base.lua
+│   │   │   │   │       │   ├── HUD_Battery.lua
 │   │   │   │   │       │   ├── HUD_Icon.lua
 │   │   │   │   │       │   ├── HUD_Init.lua
 │   │   │   │   │       │   ├── HUD_ModOptions.lua
@@ -101,15 +102,22 @@
 │   │   │   │       └── MTSW_TChip_EMP.txt
 │   │   │   ├── UI
 │   │   │   │   └── OnScreenSmartWatchHUD
-│   │   │   │       ├── OnScreenSmartWatchHUD_Empty.png
-│   │   │   │       └── OnScreenSmartWatchHUD_OScore.png
+│   │   │   │       ├── OnScreenSmartWatchHUD.png
+│   │   │   │       ├── OnScreenSmartWatchHUD_Battery_100.png
+│   │   │   │       ├── OnScreenSmartWatchHUD_Battery_25.png
+│   │   │   │       ├── OnScreenSmartWatchHUD_Battery_5.png
+│   │   │   │       ├── OnScreenSmartWatchHUD_Battery_50.png
+│   │   │   │       ├── OnScreenSmartWatchHUD_Battery_75.png
+│   │   │   │       ├── OnScreenSmartWatchHUD_Circle.png
+│   │   │   │       ├── OnScreenSmartWatchHUD_Circle_128.png
+│   │   │   │       └── OnScreenSmartWatchHUD_Circle_64.png
 │   │   │   └── registries.lua
 │   │   ├── logo.png
 │   │   ├── mod.info
 │   │   └── poster.png
 │   └── common
 ├── docs
-│   └── HUD_OVERVIEW_v2.md
+│   └── HUD_OVERVIEW.md
 ├── README.md
 └── tree.md
 ```

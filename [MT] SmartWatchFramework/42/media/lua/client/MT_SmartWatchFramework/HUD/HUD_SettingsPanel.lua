@@ -6,12 +6,11 @@ if MT_SmartWatch.HUD.SettingsPanel then return end
 
 require "MT_SmartWatchFramework/HUD/HUD_State"
 
+-- ============================================================
+-- Данные
+-- ============================================================
 local SIZE_VALUES = { 256, 128, 64 }
-local SIZE_LABELS = {
-    "256",
-    "128",
-    "64",
-}
+local SIZE_LABELS = { "256", "128", "64" }
 
 local FADE_VALUES = { 0, 0.5, 1, 2, 3, 4, 5, 6 }
 local FADE_LABEL_KEYS = {
@@ -25,15 +24,25 @@ local FADE_LABEL_KEYS = {
     "UI_MTSW_HUD_Fade_6",
 }
 local FADE_LABEL_FALLBACKS = {
-    "Never",
-    "0.5 sec",
-    "1 sec",
-    "2 sec",
-    "3 sec",
-    "4 sec",
-    "5 sec",
-    "6 sec",
+    "Never", "0.5 sec", "1 sec", "2 sec",
+    "3 sec", "4 sec", "5 sec", "6 sec",
 }
+
+local SPEED_VALUES = { 1, 2, 3, 4 }
+local SPEED_LABEL_KEYS = {
+    "UI_MTSW_HUD_Speed_Never",
+    "UI_MTSW_HUD_Speed_Slow",
+    "UI_MTSW_HUD_Speed_Medium",
+    "UI_MTSW_HUD_Speed_Fast",
+}
+local SPEED_LABEL_FALLBACKS = { "Never", "Slow", "Medium", "Fast" }
+
+local DIRECTION_VALUES = { 1, 2 }
+local DIRECTION_LABEL_KEYS = {
+    "UI_MTSW_HUD_Direction_Left",
+    "UI_MTSW_HUD_Direction_Right",
+}
+local DIRECTION_LABEL_FALLBACKS = { "Left", "Right" }
 
 local function idxOf(tbl, v, fallback)
     for i, s in ipairs(tbl) do if s == v then return i end end
@@ -48,6 +57,9 @@ local function L(key, fallback)
     return fallback or key
 end
 
+-- ============================================================
+-- Класс
+-- ============================================================
 local function buildPanelClass()
     if MT_SmartWatch.HUD.SettingsPanel then return end
     if not ISPanel then
@@ -60,9 +72,10 @@ local function buildPanelClass()
 
     local HEADER_H = 26
     local PAD      = 12
+    local PANEL_W  = 260
 
     function Panel:new(x, y, ownerIcon)
-        local o = ISPanel:new(x, y, 260, 230)
+        local o = ISPanel:new(x, y, PANEL_W, 230)
         setmetatable(o, self)
         self.__index = self
 
@@ -82,7 +95,7 @@ local function buildPanelClass()
         local y = HEADER_H + PAD
         local S = MT_SmartWatch.HUD.Settings
 
-        -- Pin checkbox
+        -- Pin
         self.pinBox = ISTickBox:new(PAD, y, self.width - PAD * 2, 24, "")
         self.pinBox.choicesColor = { r = 1, g = 1, b = 1, a = 1 }
         self.pinBox:initialise()
@@ -91,15 +104,10 @@ local function buildPanelClass()
         self:addChild(self.pinBox)
         y = y + 32
 
-        -- Icon size label
-        local sizeLbl = ISLabel:new(PAD, y, 20,
-            L("UI_MTSW_HUD_IconSize", "Icon size"),
-            1, 1, 1, 1, UIFont.Small, true)
-        sizeLbl:initialise()
-        self:addChild(sizeLbl)
+        -- Icon size
+        self:addChild(self:makeLabel(PAD, y, L("UI_MTSW_HUD_IconSize", "Icon size")))
         y = y + 22
 
-        -- Icon size combo
         self.sizeCombo = ISComboBox:new(PAD, y, self.width - PAD * 2, 24, self, nil)
         self.sizeCombo:initialise()
         for _, label in ipairs(SIZE_LABELS) do
@@ -109,15 +117,10 @@ local function buildPanelClass()
         self:addChild(self.sizeCombo)
         y = y + 32
 
-        -- Fade time label
-        local fadeLbl = ISLabel:new(PAD, y, 20,
-            L("UI_MTSW_HUD_FadeTime", "Fade time"),
-            1, 1, 1, 1, UIFont.Small, true)
-        fadeLbl:initialise()
-        self:addChild(fadeLbl)
+        -- Fade time
+        self:addChild(self:makeLabel(PAD, y, L("UI_MTSW_HUD_FadeTime", "Fade time")))
         y = y + 22
 
-        -- Fade time combo
         self.fadeCombo = ISComboBox:new(PAD, y, self.width - PAD * 2, 24, self, nil)
         self.fadeCombo:initialise()
         for i, key in ipairs(FADE_LABEL_KEYS) do
@@ -125,9 +128,35 @@ local function buildPanelClass()
         end
         self.fadeCombo.selected = idxOf(FADE_VALUES, S.fadeTime, 2)
         self:addChild(self.fadeCombo)
+        y = y + 32
+
+        -- Circle speed
+        self:addChild(self:makeLabel(PAD, y, L("UI_MTSW_HUD_CircleSpeed", "Circle speed")))
+        y = y + 22
+
+        self.speedCombo = ISComboBox:new(PAD, y, self.width - PAD * 2, 24, self, nil)
+        self.speedCombo:initialise()
+        for i, key in ipairs(SPEED_LABEL_KEYS) do
+            self.speedCombo:addOption(L(key, SPEED_LABEL_FALLBACKS[i]))
+        end
+        self.speedCombo.selected = idxOf(SPEED_VALUES, S.circleSpeed, 3)
+        self:addChild(self.speedCombo)
+        y = y + 32
+
+        -- Circle direction
+        self:addChild(self:makeLabel(PAD, y, L("UI_MTSW_HUD_CircleDirection", "Circle direction")))
+        y = y + 22
+
+        self.dirCombo = ISComboBox:new(PAD, y, self.width - PAD * 2, 24, self, nil)
+        self.dirCombo:initialise()
+        for i, key in ipairs(DIRECTION_LABEL_KEYS) do
+            self.dirCombo:addOption(L(key, DIRECTION_LABEL_FALLBACKS[i]))
+        end
+        self.dirCombo.selected = idxOf(DIRECTION_VALUES, S.circleDirection, 2)
+        self:addChild(self.dirCombo)
         y = y + 40
 
-        -- Save button
+        -- Save
         self.saveBtn = ISButton:new(PAD, y, self.width - PAD * 2, 26,
             L("UI_MTSW_HUD_Save", "Save"), self, Panel.onSave)
         self.saveBtn:initialise()
@@ -136,14 +165,24 @@ local function buildPanelClass()
         self:setHeight(y + 26 + PAD)
     end
 
+    function Panel:makeLabel(x, y, text)
+        local lbl = ISLabel:new(x, y, 20, text, 1, 1, 1, 1, UIFont.Small, true)
+        lbl:initialise()
+        return lbl
+    end
+
     function Panel:onSave()
         local sizeIdx = self.sizeCombo.selected or 2
         local fadeIdx = self.fadeCombo.selected or 2
+        local speedIdx = self.speedCombo.selected or 2
+        local dirIdx  = self.dirCombo.selected or 2
         local pinned  = self.pinBox:isSelected(1) == true
 
         local S = MT_SmartWatch.HUD.Settings
-        S.iconSize = SIZE_VALUES[sizeIdx] or 128
-        S.fadeTime = FADE_VALUES[fadeIdx] or 0.5
+        S.iconSize        = SIZE_VALUES[sizeIdx] or 128
+        S.fadeTime        = FADE_VALUES[fadeIdx] or 0.5
+        S.circleSpeed     = SPEED_VALUES[speedIdx] or 3
+        S.circleDirection = DIRECTION_VALUES[dirIdx] or 2
 
         if self.ownerIcon then
             self.ownerIcon:setPinned(pinned)
@@ -155,6 +194,8 @@ local function buildPanelClass()
 
         print("[MT Smart Watch - HUD] settings saved: iconSize=" .. tostring(S.iconSize)
             .. " fadeTime=" .. tostring(S.fadeTime)
+            .. " circleSpeed=" .. tostring(S.circleSpeed)
+            .. " circleDirection=" .. tostring(S.circleDirection)
             .. " pinned=" .. tostring(pinned))
 
         self:close()
@@ -234,6 +275,9 @@ local function buildPanelClass()
     print("[MT Smart Watch - HUD] SettingsPanel class built")
 end
 
+-- ============================================================
+-- Открытие
+-- ============================================================
 function MT_SmartWatch.HUD.openSettingsPanel(ownerIcon)
     local existing = MT_SmartWatch.HUD.settingsPanelInstance
     if existing then
@@ -252,7 +296,7 @@ function MT_SmartWatch.HUD.openSettingsPanel(ownerIcon)
     local screenW = getCore():getScreenWidth()
     local screenH = getCore():getScreenHeight()
 
-    local panelW, panelH = 260, 230
+    local panelW, panelH = 260, 380
     local px = iconX + iconW + 10
     if px + panelW > screenW - 10 then
         px = iconX - panelW - 10

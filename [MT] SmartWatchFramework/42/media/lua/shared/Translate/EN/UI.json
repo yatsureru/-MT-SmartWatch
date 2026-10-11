@@ -15,5 +15,13 @@
 	"UI_MTSW_HUD_Fade_4"				: "4 sec",
 	"UI_MTSW_HUD_Fade_5"				: "5 sec",
 	"UI_MTSW_HUD_Fade_6"				: "6 sec",
+	"UI_MTSW_HUD_CircleSpeed"			: "Circle speed",
+	"UI_MTSW_HUD_CircleDirection"		: "Circle direction",
+	"UI_MTSW_HUD_Speed_Never"			: "Never",
+	"UI_MTSW_HUD_Speed_Slow"			: "Slow",
+	"UI_MTSW_HUD_Speed_Medium"			: "Medium",
+	"UI_MTSW_HUD_Speed_Fast"			: "Fast",
+	"UI_MTSW_HUD_Direction_Left"		: "Left",
+	"UI_MTSW_HUD_Direction_Right"		: "Right",
 	
 }

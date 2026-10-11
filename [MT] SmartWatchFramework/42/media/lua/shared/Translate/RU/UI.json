@@ -15,5 +15,13 @@
 	"UI_MTSW_HUD_Fade_4"				: "4 сек",
 	"UI_MTSW_HUD_Fade_5"				: "5 сек",
 	"UI_MTSW_HUD_Fade_6"				: "6 сек",
+	"UI_MTSW_HUD_CircleSpeed"			: "Скорость вращения",
+	"UI_MTSW_HUD_CircleDirection"		: "Направление вращения",
+	"UI_MTSW_HUD_Speed_Never"			: "Никогда",
+	"UI_MTSW_HUD_Speed_Slow"			: "Медленно",
+	"UI_MTSW_HUD_Speed_Medium"			: "Средне",
+	"UI_MTSW_HUD_Speed_Fast"			: "Быстро",
+	"UI_MTSW_HUD_Direction_Left"		: "Влево",
+	"UI_MTSW_HUD_Direction_Right"		: "Вправо",
 	
 }
