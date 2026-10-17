@@ -1,14 +1,11 @@
--- HUD_SettingsPanel.lua
+-- HUD_SettingsPanel_WatchOnScreen.lua
 MT_SmartWatch = MT_SmartWatch or {}
 MT_SmartWatch.HUD = MT_SmartWatch.HUD or {}
 
-if MT_SmartWatch.HUD.SettingsPanel then return end
+if MT_SmartWatch.HUD.SettingsPanel_WatchOnScreen then return end
 
 require "MT_SmartWatchFramework/HUD/HUD_State"
 
--- ============================================================
--- Данные
--- ============================================================
 local SIZE_VALUES = { 256, 128, 64 }
 local SIZE_LABELS = { "256", "128", "64" }
 
@@ -57,18 +54,15 @@ local function L(key, fallback)
     return fallback or key
 end
 
--- ============================================================
--- Класс
--- ============================================================
 local function buildPanelClass()
-    if MT_SmartWatch.HUD.SettingsPanel then return end
+    if MT_SmartWatch.HUD.SettingsPanel_WatchOnScreen then return end
     if not ISPanel then
         print("[MT Smart Watch - HUD] FATAL: ISPanel not available")
         return
     end
 
-    local Panel = ISPanel:derive("MT_SmartWatch_HUD_SettingsPanel")
-    MT_SmartWatch.HUD.SettingsPanel = Panel
+    local Panel = ISPanel:derive("MT_SmartWatch_HUD_SettingsPanel_WatchOnScreen")
+    MT_SmartWatch.HUD.SettingsPanel_WatchOnScreen = Panel
 
     local HEADER_H = 26
     local PAD      = 12
@@ -126,7 +120,7 @@ local function buildPanelClass()
         for i, key in ipairs(FADE_LABEL_KEYS) do
             self.fadeCombo:addOption(L(key, FADE_LABEL_FALLBACKS[i]))
         end
-        self.fadeCombo.selected = idxOf(FADE_VALUES, S.fadeTime, 2)
+        self.fadeCombo.selected = idxOf(FADE_VALUES, S.fadeTime, 1)
         self:addChild(self.fadeCombo)
         y = y + 32
 
@@ -172,15 +166,15 @@ local function buildPanelClass()
     end
 
     function Panel:onSave()
-        local sizeIdx = self.sizeCombo.selected or 2
-        local fadeIdx = self.fadeCombo.selected or 2
-        local speedIdx = self.speedCombo.selected or 2
-        local dirIdx  = self.dirCombo.selected or 2
-        local pinned  = self.pinBox:isSelected(1) == true
+        local sizeIdx   = self.sizeCombo.selected or 2
+        local fadeIdx   = self.fadeCombo.selected or 1
+        local speedIdx  = self.speedCombo.selected or 3
+        local dirIdx    = self.dirCombo.selected or 2
+        local pinned    = self.pinBox:isSelected(1) == true
 
         local S = MT_SmartWatch.HUD.Settings
         S.iconSize        = SIZE_VALUES[sizeIdx] or 128
-        S.fadeTime        = FADE_VALUES[fadeIdx] or 0.5
+        S.fadeTime        = FADE_VALUES[fadeIdx] or 0
         S.circleSpeed     = SPEED_VALUES[speedIdx] or 3
         S.circleDirection = DIRECTION_VALUES[dirIdx] or 2
 
@@ -192,7 +186,7 @@ local function buildPanelClass()
         local State = MT_SmartWatch.HUD.State
         if State then State.save() end
 
-        print("[MT Smart Watch - HUD] settings saved: iconSize=" .. tostring(S.iconSize)
+        print("[MT Smart Watch - HUD] watch settings saved: iconSize=" .. tostring(S.iconSize)
             .. " fadeTime=" .. tostring(S.fadeTime)
             .. " circleSpeed=" .. tostring(S.circleSpeed)
             .. " circleDirection=" .. tostring(S.circleDirection)
@@ -207,8 +201,8 @@ local function buildPanelClass()
         end
         self:setVisible(false)
         self:removeFromUIManager()
-        if MT_SmartWatch.HUD.settingsPanelInstance == self then
-            MT_SmartWatch.HUD.settingsPanelInstance = nil
+        if MT_SmartWatch.HUD.settingsPanelWatchOnScreenInstance == self then
+            MT_SmartWatch.HUD.settingsPanelWatchOnScreenInstance = nil
         end
     end
 
@@ -272,22 +266,22 @@ local function buildPanelClass()
         self:drawText(title, (self.width - tw) / 2, 4, 1, 1, 1, 1, UIFont.Medium)
     end
 
-    print("[MT Smart Watch - HUD] SettingsPanel class built")
+    print("[MT Smart Watch - HUD] SettingsPanel_WatchOnScreen class built")
 end
 
 -- ============================================================
--- Открытие
+-- Открытие панели (singleton + toggle)
 -- ============================================================
-function MT_SmartWatch.HUD.openSettingsPanel(ownerIcon)
-    local existing = MT_SmartWatch.HUD.settingsPanelInstance
+function MT_SmartWatch.HUD.openSettingsPanel_WatchOnScreen(ownerIcon)
+    local existing = MT_SmartWatch.HUD.settingsPanelWatchOnScreenInstance
     if existing then
         existing:close()
         return
     end
 
-    local Panel = MT_SmartWatch.HUD.SettingsPanel
+    local Panel = MT_SmartWatch.HUD.SettingsPanel_WatchOnScreen
     if not Panel then
-        print("[MT Smart Watch - HUD] SettingsPanel class not ready")
+        print("[MT Smart Watch - HUD] SettingsPanel_WatchOnScreen class not ready")
         return
     end
 
@@ -320,7 +314,7 @@ function MT_SmartWatch.HUD.openSettingsPanel(ownerIcon)
         ownerIcon.alpha = 1
     end
 
-    MT_SmartWatch.HUD.settingsPanelInstance = panel
+    MT_SmartWatch.HUD.settingsPanelWatchOnScreenInstance = panel
     return panel
 end
 

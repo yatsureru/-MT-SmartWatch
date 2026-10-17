@@ -8,14 +8,22 @@
 
 ## 0. Changelog
 
-### v3 (текущая)
+### v4 (текущая)
+- **Добавлен Тактический Хотбар** (`HUD_TacticalSlots.lua`): слоты для чипов, drag&drop, привязка к ядру.
+- **Кулдауны чипов**: эффект часов (clock-sweep), пульсирующая обводка, цифровой таймер.
+- **Состояние "Нет батарейки"**: темный тинт + иконка пустой батарейки с пульсацией (приоритет ниже КД).
+- **Настройки хотбара** (`HUD_SettingsPanel_Hotbar.lua`): Scale, Gap, Fade, Line Position (Top/Bottom), Lock (Pin).
+- **Декоративная полоса (Line)**: 3-slice рендер (Left/Center/Tail), сдвиг, текст `Battery Status: N \ X`.
+- **Важно**: `Battery.getCurrent` вызывается через точку (это функция модуля, не метод объекта).
+- **Известные баги**: Текст `Battery Status` не ресайзится, отступы при переключении полосы Top/Bottom кривые.
+
+### v3
 - **Новая архитектура иконки**: базовая (`OnScreenSmartWatchHUD.png`) + опциональные слои (`_Circle`, `_Battery_*`).
 - **Circle (кольцо ядра)** — вращающийся слой, появляется при наличии OS Core.
 - **Battery** — 5 тиров, текст %, пульсация при `<5%`.
 - **Настройки**: Circle speed (Never/Slow/Medium/Fast) и Circle direction (Left/Right) в ПКМ-панели.
 - **Критично для B42.21**: `DrawTextureAngle` — единственный рабочий API вращения; не масштабирует текстуру → нужны 3 PNG круга (256/128/64).
 - **Оптимизация**: кэш `MeasureStringX`, `getFontHeight`, поиск tier — только при смене целого %.
-- Известный мелкий баг: кириллица в `print()` ломается на Windows → использовать только ASCII в логах.
 
 ### v2
 - Настройки HUD перенесены из вкладки MODS в ПКМ-панель.
@@ -32,47 +40,60 @@
 
 **Мод:** `[MT] SmartWatchFramework` (Project Zomboid B42.21)
 **Репозиторий:** https://github.com/yatsureru/-MT-SmartWatch
-**Задача HUD:** показывать иконку при надевании часов `mtsw:smartwatch`; при наличии ядра — кольцо + батарейка + %; ПКМ → панель настроек.
+**Задача HUD:** показывать иконку при надевании часов `mtsw:smartwatch`; при наличии ядра — кольцо, батарейка, %; ПКМ → панель настроек. При наличии ядра также появляется Тактический хотбар для быстрого доступа к чипам.
 
 **Связанные модули в `shared/`:**
 - `Watch.lua` — `Watch.isSmartWatch(item)`, `Watch.getEquippedWatch(player)`
 - `OSCore.lua` — `OSCore.hasInstalledCore(watch)`, `OSCore.getInstalledData(watch)`
-- `ChipSystem.lua` — `ChipSystem.getInstalledChips(watch)`, `ChipSystem.getActiveChips(watch)`
+- `ChipSystem.lua` — `ChipSystem.getInstalledChips(watch)`, `getActiveChips`, `setHotbarSlot`, `getHotbarSlots`, `activateChip`
 - `Battery.lua` — `Battery.getCurrent/Max/Percent(watch)`, `Battery.isEmpty(watch)`
 - `BatteryDrain.lua` — пассивный слив заряда, тик раз в игровую минуту
+- `TacticalChipRegister.lua` — реестр тактических чипов (содержит `onActivate` и `getCooldown`)
 
 ---
 
 ## 2. Структура HUD
 
-```
+```text
 [MT] SmartWatchFramework/42/
 ├── media/
 │   ├── lua/
 │   │   ├── client/
 │   │   │   └── MT_SmartWatchFramework/
 │   │   │       └── HUD/
-│   │   │           ├── HUD_Init.lua                     ← entry point
-│   │   │           ├── HUD_State.lua                    ← runtime + Settings + .ini
-│   │   │           ├── HUD_Base.lua                     ← базовый класс (fade, drag, pin)
-│   │   │           ├── HUD_Icon.lua                     ← иконка + Circle + Battery-вызов
-│   │   │           ├── HUD_Battery.lua                  ← рендер батарейки + % + пульс
-│   │   │           ├── HUD_SettingsPanel.lua            ← ПКМ-панель
-│   │   │           └── HUD_ModOptions.lua.disabled      ← архив (MODS отключён)
+│   │   │           ├── HUD_Init.lua                        ← entry point
+│   │   │           ├── HUD_State.lua                       ← runtime + Settings + .ini
+│   │   │           ├── HUD_Base.lua                        ← базовый класс (fade, drag, pin)
+│   │   │           ├── HUD_Icon.lua                        ← иконка + Circle + Battery-вызов
+│   │   │           ├── HUD_Battery.lua                     ← рендер батарейки + % + пульс
+│   │   │           ├── HUD_SettingsPanel_WatchOnScreen.lua ← ПКМ-панель часов
+│   │   │           ├── HUD_TacticalSlots.lua               ← Хотбар (слоты, КД, полоса)
+│   │   │           ├── HUD_SettingsPanel_Hotbar.lua        ← ПКМ-панель хотбара
+│   │   │           ├── HUD_Interface.lua                   ← Главное окно часов (ЛКМ)
+│   │   │           ├── HUD_Interface_TacticalChips.lua     ← Список чипов для Drag&Drop
+│   │   │           └── HUD_ModOptions.lua.disabled         ← архив (MODS отключён)
 │   │   └── shared/
-│   │       ├── MT_SmartWatchFramework/                  ← Watch, OSCore, ChipSystem, Battery, BatteryDrain
+│   │       ├── MT_SmartWatchFramework/                     ← Watch, OSCore, ChipSystem, Battery, BatteryDrain, Registers
 │   │       └── Translate/{EN,RU}/ui.json
 │   └── UI/
-│       └── OnScreenSmartWatchHUD/
-│           ├── OnScreenSmartWatchHUD.png                ← 256×256, база (всегда видна)
-│           ├── OnScreenSmartWatchHUD_Circle.png         ← 256×256, кольцо ядра
-│           ├── OnScreenSmartWatchHUD_Circle_128.png     ← 128×128 (из-за API)
-│           ├── OnScreenSmartWatchHUD_Circle_64.png      ← 64×64   (из-за API)
-│           ├── OnScreenSmartWatchHUD_Battery_100.png    ← 256×256, 75–100%
-│           ├── OnScreenSmartWatchHUD_Battery_75.png     ← 256×256, 50–75%
-│           ├── OnScreenSmartWatchHUD_Battery_50.png     ← 256×256, 25–50%
-│           ├── OnScreenSmartWatchHUD_Battery_25.png     ← 256×256, 5–25%
-│           └── OnScreenSmartWatchHUD_Battery_5.png      ← 256×256, <5% (пульс)
+│       ├── OnScreenSmartWatchHUD/
+│       │   ├── OnScreenSmartWatchHUD.png                   ← 256×256, база
+│       │   ├── OnScreenSmartWatchHUD_Circle.png            ← 256×256, кольцо
+│       │   ├── OnScreenSmartWatchHUD_Circle_128.png        ← 128×128
+│       │   ├── OnScreenSmartWatchHUD_Circle_64.png         ← 64×64
+│       │   ├── OnScreenSmartWatchHUD_Battery_100.png       ← 75–100%
+│       │   ├── OnScreenSmartWatchHUD_Battery_75.png        ← 50–75%
+│       │   ├── OnScreenSmartWatchHUD_Battery_50.png        ← 25–50%
+│       │   ├── OnScreenSmartWatchHUD_Battery_25.png        ← 5–25%
+│       │   └── OnScreenSmartWatchHUD_Battery_5.png         ← <5% (пульс)
+│       └── OnScreenTacticalPanelHUD/
+│           ├── OnScreenTacticalPanelHUD_SlotEmpty.png      ← Пустой слот (84x84)
+│           ├── OnScreenTacticalPanelHUD_BatteryEmpty.png   ← Иконка пустой батарейки (84x84)
+│           ├── OnScreenTacticalPanelHUD_LockOpen.png       ← Замок открыт (TODO)
+│           ├── OnScreenTacticalPanelHUD_LockClosed.png     ← Замок закрыт (TODO)
+│           ├── OnScreenTacticalPanelHUD_LineLeft.png       ← Полоса левая (TODO)
+│           ├── OnScreenTacticalPanelHUD_LineCenter.png     ← Полоса центр (TODO)
+│           └── OnScreenTacticalPanelHUD_LineTail.png       ← Полоса хвост (TODO)
 ```
 
 ---
@@ -81,13 +102,16 @@
 
 | Файл | Роль |
 |------|------|
-| **`HUD_Init.lua`** | Entry point. `require` модулей. Singleton иконки. Троттлинг `OnPlayerUpdate` (8 кадров). `OnGameStart → State.load()`. `OnPlayerDeath`. Точка `openInterface()`. |
-| **`HUD_State.lua`** | `MT_SmartWatch.HUD.State` + `Settings`. Чтение/запись `MT_SmartWatch_HUD.ini`. `State.update(player)` — watch / hasOSCore / coreData / chips / batteryPercent. |
-| **`HUD_Base.lua`** | Класс `MT_SmartWatch_HUD_Base` (ISUIElement). Fade, drag, pin, hover, click. |
-| **`HUD_Icon.lua`** | Класс `MT_SmartWatch_HUD_Icon`. Рисует базу + кольцо + вызывает `Battery.render()`. Управляет анимацией кольца (углы, скорости). |
-| **`HUD_Battery.lua`** | Модуль-рендерер батарейки. Выбор тира, кэш текста %, пульс `<5%`. Вызывается **только** из `HUD_Icon:render()`, не отдельный UIElement. |
-| **`HUD_SettingsPanel.lua`** | ПКМ-панель: Pin / Icon size / Fade time / Circle speed / Circle direction / Save. |
-| **`HUD_ModOptions.lua.disabled`** | Архив. Включить: убрать `.disabled`, вернуть `require` в `HUD_Init.lua`. |
+| **`HUD_Init.lua`** | Entry point. `require` модулей. Singleton иконки и хотбара. Троттлинг `OnPlayerUpdate` (8 кадров). `OnGameStart`, `OnPlayerDeath`. |
+| **`HUD_State.lua`** | `MT_SmartWatch.HUD.State` + `Settings`. Чтение/запись `.ini`. `State.update(player)` (watch, hasOSCore, chips, batteryPercent). |
+| **`HUD_Base.lua`** | Базовый класс (ISUIElement). Fade, drag, pin, hover, click. |
+| **`HUD_Icon.lua`** | Класс иконки часов. Рисует базу + кольцо + вызывает `Battery.render()`. Анимация кольца. |
+| **`HUD_Battery.lua`** | Модуль-рендерер батарейки. Выбор тира, кэш, пульс `<5%`. |
+| **`HUD_SettingsPanel_WatchOnScreen.lua`** | ПКМ-панель часов: Pin, Icon size, Fade, Circle speed/direction. |
+| **`HUD_TacticalSlots.lua`** | Отрисовка слотов, логика Drag&Drop, кулдауны (clock-sweep), пустая батарейка, отрисовка полосы и текста статуса. |
+| **`HUD_SettingsPanel_Hotbar.lua`** | ПКМ-панель хотбара: Pin, Scale, Gap, Fade, Line Position. |
+| **`HUD_Interface.lua`** | Окно интерфейса часов (кнопка "Тактические чипы"). |
+| **`HUD_Interface_TacticalChips.lua`** | Список установленных чипов для перетаскивания на хотбар. |
 
 ---
 
@@ -95,158 +119,132 @@
 
 ### 4.1. Namespace
 - `MT_SmartWatch.HUD.State` / `.Settings` — данные
-- `MT_SmartWatch.HUD.Base / Icon / SettingsPanel / Battery` — модули
-- `MT_SmartWatch.HUD.icon` — singleton иконки
-- `MT_SmartWatch.HUD.settingsPanelInstance` — singleton панели
+- `MT_SmartWatch.HUD.Base / Icon / SettingsPanel_WatchOnScreen / TacticalSlots` — модули
+- `MT_SmartWatch.HUD.icon` / `.tacticalSlots` — синглтоны UI
+- `MT_SmartWatch.HUD.dragPreview` — синглтон превью для Drag&Drop
 
 ### 4.2. Имена классов
 `:derive("MT_SmartWatch_HUD_XXX")` — полный префикс.
 
 ### 4.3. Лог-префикс
-`[MT Smart Watch - HUD]` для grep.
-
-⚠️ **Только ASCII в `print()`.** Кириллица ломается в Windows-консоли PZ (CP1251 vs UTF-8). Русский — только в `Translate/*.json` и в UI, который рендерит движок (`drawText`).
-
-⚠️ В логе `[[MT] SmartWatchFramework]` — двойной префикс от модовой обёртки `print` в `Debug.lua`. Косметика. TODO: перевести HUD на родной логгер мода.
+`[MT Smart Watch - HUD]` для grep. **Только ASCII в `print()`.**
 
 ### 4.4. Хранилище
 - **Единственный источник правды**: `Zomboid/MT_SmartWatch_HUD.ini`
-- **`PZAPI.ModOptions`** — отключён
-- **Runtime** — каждые 8 кадров через `State.update(player)`
-- **Реестры контента** — в `shared/`, **не дублировать**
+- **Runtime** — обновляется каждые 8 кадров через `State.update(player)`.
 
 ### 4.5. Переводы
-- Ключи `UI_MTSW_HUD_*` в `Translate/{EN,RU}/ui.json`
-- Хелпер `L(key, fallback)` = `getTextOrNull(key) or fallback`
-- **Trailing comma** в JSON разрешена — ставить всегда
+- Ключи `UI_MTSW_HUD_*` в `Translate/{EN,RU}/ui.json`. Trailing comma разрешена.
 
 ---
 
 ## 5. ⚠️ Критические грабли (B42.21)
 
-### 5.1. `ISUIElement` / `ISPanel` не загружены на момент загрузки мода
-**Решение:** отложенное создание класса через `Events.OnGameBoot`.
-**Норма:** `ISUIElement missing at load, deferring Base class to OnGameBoot`.
-**Реальная ошибка:** `FATAL: ISUIElement still not available at OnGameBoot` → Verify Integrity Steam.
+### 5.1. `ISUIElement` / `ISPanel` не загружены
+Отложенное создание через `Events.OnGameBoot`. Если `FATAL` в OnGameBoot — Verify Integrity Steam.
 
-### 5.2. `getTimeStep()` не существует в B42
-Использовать `getTimestampMs()` → fallback `getTimeInMillis()` → `getTimestamp()*1000`.
+### 5.2. `getTimeStep()` не существует
+Использовать `getTimestampMs()` (fallback `getTimeInMillis()`).
 ```lua
 local dt = (nowMs - self._lastMs) / 1000
-if dt > 0.25 then dt = 0.016 end   -- защита от фризов
+if dt > 0.25 then dt = 0.016 end
 ```
 
 ### 5.3. Drag feedback loop
 Использовать **экранные** `getMouseX()` (не `self:getMouseX()`).
-`mouseDown` → `mouseDownScreenX = getMouseX()`.
-`updateDrag` → `getMouseX() - mouseDownScreenX`.
 
 ### 5.4. Обязательны все 4 метода drag
-`onMouseMove`, `onMouseUp`, `onMouseMoveOutside`, `onMouseUpOutside`. + `setCapture(true/false)`.
+`onMouseMove`, `onMouseUp`, `onMouseMoveOutside`, `onMouseUpOutside` + `setCapture`.
 
 ### 5.5. `getFileWriter` allowlist
 Только `.ini`, `.cfg`, `.txt`, `.log`.
 
-### 5.6. Троттлинг `OnPlayerUpdate`
-`UPDATE_INTERVAL = 8`.
+### 5.6. `Battery.getCurrent` — функция, а не метод!
+Вызывать **только через точку**: `Battery.getCurrent(watch)`.
+Если написать `Battery:getCurrent(watch)` — упадёт `Object tried to call nil` (в watch передастся таблица модуля).
 
-### 5.7. Hover-зона
-`HOVER_SHRINK_PCT = 0.20` — сжимаем на 20% с каждой стороны.
+### 5.7. 🚨 Вращение текстуры (Circle)
+`javaObject.DrawTextureAngle(tex, cx, cy, angleDeg)` — единственный рабочий API. Угол в **градусах**, не масштабирует. Поэтому 3 PNG для круга.
 
-### 5.8. 🚨 **Масштабирование + вращение текстуры — главная засада B42.21**
-
-Проверено диагностикой (`type()` для всех вариантов). **Результаты:**
-
-| Метод | Наличие | Масштабирует? | Углы |
-|-------|---------|---------------|------|
-| `javaObject.DrawTextureScaledAngle` | ❌ nil | — | — |
-| `javaObject.DrawTextureAngle` | ✅ function | ❌ **нет** | **градусы** |
-| `self.drawTextureAngle` | ❌ nil | — | — |
-| `self.drawTextureScaledAngle` | ❌ nil | — | — |
-| глобальные `drawTextureAngle` / `drawTextureScaledAngle` | ❌ nil | — | — |
-| `ISUIElement.setScale` / `self.setScale` / `self.scale` | ❌ nil | — | — |
-
-**Единственный рабочий метод:**
-```lua
-javaObject:DrawTextureAngle(tex, cx, cy, angleDeg)
-```
-- угол — **градусы** (не радианы);
-- anchor — **центр текстуры** (cx, cy — это точка вращения);
-- **не масштабирует** — рисует текстуру в её **нативном размере**.
-
-**Следствия:**
-
-1. **Обычные элементы** (иконка, батарейки) — одна текстура **256×256** через `drawTextureScaled(tex, 0, 0, w, h, ...)`. Работает нормально, downscale на GPU даёт качественный результат.
-
-2. **Круг (Circle) — единственный элемент, где нужны 3 PNG.** Потому что `DrawTextureAngle` не масштабирует. При `iconSize=128` рисуется `_Circle_128.png`, при 256 — `_Circle.png`, при 64 — `_Circle_64.png`. Выбор — в `Icon:drawCircle`:
-   ```lua
-   local size = self:getWidth()
-   local tex  = self.texCircles[size] or self.texCircles[256]
-   ```
-
-3. **Если PZ когда-нибудь добавит `DrawTextureScaledAngle`** — 3 PNG круга можно вернуть к одному.
+### 5.8. 🚨 Текст и его масштабирование (Tactical Hotbar)
+`drawTextScaled` либо не работает, либо работает криво. В B42 попытка уменьшить текст через `textScale = 0.5 * scale` приводит к визуальным артефактам. Пока что оставлен базовый `UIFont.Small`.
 
 ### 5.9. Кириллица в `print()`
-Windows-консоль в CP1251 → любые русские символы превращаются в `??????`. **Всегда ASCII в логах.**
+Всегда ASCII.
 
 ---
 
 ## 6. Настройки (.ini)
 
 Файл: `Zomboid/MT_SmartWatch_HUD.ini`
-```
-VERSION=3
+```ini
+VERSION=10
+# Icon Settings
 iconSize=128
-fadeTime=0.5
+fadeTime=0
 circleSpeed=3
 circleDirection=2
+# Tactical Hotbar Settings
+tacticalLock=false
+tacticalScale=1.0
+tacticalGap=2.5
+tacticalFadeTime=0
+tacticalLinePosition=bottom
+# Positions
 icon.x=1500
 icon.y=20
 icon.pinned=false
+tacticalSlots.x=...
+tacticalSlots.y=...
+tacticalSlots.pinned=false
 ```
 
 | Ключ | Значения | По умолчанию |
 |------|----------|-------------|
-| `VERSION` | 3 (текущая) | — |
+| `VERSION` | 10 (текущая) | — |
 | `iconSize` | 256 / 128 / 64 | 128 |
-| `fadeTime` | 0 = Never, 0.5 / 1 / 2 / 3 / 4 / 5 / 6 | 0.5 |
-| `circleSpeed` | 1 = Never, 2 = Slow (64с), 3 = Medium (32с), 4 = Fast (16с) | 3 |
-| `circleDirection` | 1 = Left, 2 = Right | 2 |
-| `icon.x`, `icon.y` | координаты | правый верх |
-| `icon.pinned` | true / false | false |
+| `fadeTime` | 0 = Never, 0.5 / 1 / 2 / 3 / 4 / 5 / 6 | 0 |
+| `circleSpeed` | 1=Never, 2=Slow, 3=Medium, 4=Fast | 3 |
+| `circleDirection` | 1=Left, 2=Right | 2 |
+| `tacticalLock` | true / false | false |
+| `tacticalScale` | 0.5 / 0.75 / 1.0 / 1.25 / 1.5 | 1.0 |
+| `tacticalGap` | 0 / 2.5 / 5 / 7.5 / 10 | 2.5 |
+| `tacticalFadeTime` | 0 = Never, 0.5 .. 6 | 0 |
+| `tacticalLinePosition` | "bottom" / "top" | "bottom" |
 
-Несовпадение `VERSION` → сброс позиции/pin/circleSpeed/circleDirection. IconSize и FadeTime сохраняются.
+Несовпадение `VERSION` → полный сброс layout-настроек.
 
 ---
 
 ## 7. Поток событий
 
-```
+```text
 OnGameBoot:
-  → HUD_Base.buildBaseClass()           (если ISUIElement уже есть)
-  → HUD_SettingsPanel.buildPanelClass() (если ISPanel уже есть)
+  → HUD_Base.buildBaseClass()
+  → HUD_SettingsPanel.buildPanelClass()
+  → HUD_TacticalSlots.buildClass()
 
 OnGameStart:
-  → State.load()  (читает .ini — единственный источник правды)
+  → State.load()  (читает .ini)
 
 OnPlayerUpdate (каждые 8 кадров):
-  → State.update(player)  (watch, hasOSCore, chips, batteryPercent)
+  → State.update(player)
   → ensureIcon()
-  → icon.visible = hasWatch
-  → icon.hasOSCore = hasOSCore
+  → ensureTacticalSlots()
+  → Обновление видимости и данных
 
 Icon:render() каждый кадр:
-  → getAnimDt()
-  → updateHover() / updateAlpha(dt) / updateCircle(dt)
-  → drawTextureScaled(texBase)
-  → drawCircle()   [если hasOSCore]
-  → Battery.render()  [если hasOSCore]
+  → Отрисовка иконки, круга, батарейки
 
-ЛКМ на иконке (без drag):
-  → MT_SmartWatch.HUD.openInterface()   (заглушка, TODO)
+TacticalSlots:render() каждый кадр:
+  → Отрисовка полосы + текста статуса
+  → Отрисовка слотов + чипов (с учетом КД и Батарейки)
 
-ПКМ на иконке:
-  → openSettingsPanel(icon)
+ЛКМ на иконке:
+  → MT_SmartWatch.HUD.openInterface()
+
+ПКМ на иконке / хотбаре:
+  → openSettingsPanel_WatchOnScreen / openHotbarSettingsPanel
   → Save: Settings → State.save() → .ini
 ```
 
@@ -257,144 +255,113 @@ Icon:render() каждый кадр:
 | ID | EN | RU |
 |----|----|----|
 | `UI_MTSW_HUD_Title` | MT SmartWatch | MT SmartWatch |
-| `UI_MTSW_HUD_PinIcon` | Pin icon | Закрепить иконку |
+| `UI_MTSW_HUD_PinIcon` | Pin icon | Закрепить |
 | `UI_MTSW_HUD_IconSize` | Icon size | Размер иконки |
 | `UI_MTSW_HUD_FadeTime` | Fade time | Время до исчезновения |
-| `UI_MTSW_HUD_CircleSpeed` | Circle speed | Скорость вращения |
-| `UI_MTSW_HUD_CircleDirection` | Circle direction | Направление вращения |
 | `UI_MTSW_HUD_Save` | Save | Сохранить |
-| `UI_MTSW_HUD_Fade_Never` | Never | Никогда |
-| `UI_MTSW_HUD_Fade_05` | 0.5 sec | 0.5 сек |
-| `UI_MTSW_HUD_Fade_1`..`_6` | 1..6 sec | 1..6 сек |
-| `UI_MTSW_HUD_Speed_Never` | Never | Никогда |
-| `UI_MTSW_HUD_Speed_Slow` | Slow | Медленно |
-| `UI_MTSW_HUD_Speed_Medium` | Medium | Средне |
-| `UI_MTSW_HUD_Speed_Fast` | Fast | Быстро |
-| `UI_MTSW_HUD_Direction_Left` | Left | Влево |
-| `UI_MTSW_HUD_Direction_Right` | Right | Вправо |
+| `UI_MTSW_HUD_Fade_*` | Never / 0.5..6 sec | Никогда / 0.5..6 сек |
+| `UI_MTSW_HUD_CircleSpeed` | Circle speed | Скорость вращения |
+| `UI_MTSW_HUD_CircleDirection`| Circle direction | Направление вращения |
+| `UI_MTSW_HUD_Speed_*` | Never/Slow/Medium/Fast | Никогда/Медленно/Средне/Быстро |
+| `UI_MTSW_HUD_Direction_*` | Left/Right | Влево/Вправо |
+| `UI_MTSW_HUD_TacticalChips` | Tactical Chips | Тактические чипы |
+| `UI_MTSW_HUD_NoChips` | No tactical chips installed | Тактические чипы не установлены |
+| `UI_MTSW_HUD_HotbarTitle` | Tactical Hotbar | Тактический хотбар |
+| `UI_MTSW_HUD_TacticalScale` | Scale | Масштаб |
+| `UI_MTSW_HUD_TacticalGap` | Gap | Отступ |
+| `UI_MTSW_HUD_LinePosition` | Line position | Позиция полосы |
+| `UI_MTSW_HUD_LinePosition_Bottom`| Bottom | Снизу |
+| `UI_MTSW_HUD_LinePosition_Top` | Top | Сверху |
+| `UI_MTSW_EMP_ObjectBlocked` | I can't right now... | Сейчас не могу... |
 
 ---
 
-## 9. Логика элементов иконки
+## 9. Логика элементов
 
-### 9.1. Базовая иконка (`OnScreenSmartWatchHUD.png`)
-- **Показывается всегда**, когда надеты часы.
-- Одна текстура 256×256, рисуется через `drawTextureScaled(0, 0, w, h, alpha, 1, 1, 1)`.
-- Никогда не меняется (в отличие от старой схемы `_Empty`/`_OScore`).
+### 9.1. Иконка часов
+- Показывается всегда при наличии часов. Одна текстура 256x256.
+- При наличии ядра (`hasOSCore`):
+  - **Circle**: вращается (3 PNG под размеры), скорость и направление из настроек.
+  - **Battery**: 5 тиров (`100/75/50/25/5`). При `<5%` пульсирует только текстура батарейки. Текст % кэшируется.
 
-### 9.2. Кольцо (`_Circle*.png`)
-- Появляется только при `hasOSCore = true`.
-- Вращается со скоростью и направлением из Settings.
-- Anchor — центр иконки. Угол — градусы.
-- **3 файла** (256/128/64) из-за API-ограничения (см. 5.8).
-- При `circleSpeed = 1 (Never)` — угол жёстко `0°`, статично (не «останавливается в случайном месте»).
-
-### 9.3. Батарейка (`_Battery_*.png`)
-- Показывается только при `hasOSCore = true` и `State.batteryPercent ~= nil`.
-- 5 тиров по границам (нижняя включительно):
-
-| % | Тиер | Текстура | Цвет текста |
-|---|------|----------|-------------|
-| ≥75 | 100 | `_Battery_100` | 🟢 зелёный |
-| ≥50 | 75 | `_Battery_75` | 🟡 жёлтый |
-| ≥25 | 50 | `_Battery_50` | 🟠 жёлто-оранжевый |
-| ≥5 | 25 | `_Battery_25` | 🟠 оранжевый |
-| <5 | 5 | `_Battery_5` | 🔴 красный + **пульс** |
-
-- **Текст `NN%`** — справа от центра на 75px (native), по центру вертикали.
-- **Кэш**: `icon._batCache` — пересчитывает `MeasureStringX`, `getFontHeight`, tier — только при смене целого %.
-- **Проценты считаются от `Battery.getPercent(watch) = current / max * 100`**. Разные ядра дают разный `max` → «500 макс / 100 заряд = 20%».
-
-### 9.4. Пульс при `<5%`
-- `PULSE_PERIOD = 0.89 сек`, `PULSE_MIN_ALPHA = 0.05`.
-- Пульсирует **только текстура батарейки** (`_Battery_5.png`), передаётся через `batteryPulseAlpha` в `Battery.render(icon, baseAlpha, textureAlpha)`.
-- Базовая иконка, кольцо, текст — **не пульсируют**, `alpha = 1`.
-- **`fadeTime` игнорируется** — иконка не затухает от бездействия, пока заряд критичен.
+### 9.2. Тактический хотбар (HUD_TacticalSlots)
+- Появляется при `hasOSCore`. Количество слотов = `ChipSystem.getTacticalSlots(watch)`.
+- **Управление**: Drag&Drop из `HUD_Interface_TacticalChips`. Свап и отвязка работают только если замок открыт.
+- **Состояния чипа**:
+  - Обычное (иконка).
+  - **Кулдаун (приоритет 1)**: Clock-sweep тёмный тинт (снимается по часовой), пульсирующая обводка `#d92626`, серый текст таймера (M:SS).
+  - **Нет батарейки (приоритет 2)**: Тёмный тинт, пульсирующая иконка пустой батарейки, мягкая обводка.
+- **Полоса (Line)**:
+  - Рисуется под/над слотами, сдвиг 25px вправо. 3-slice (Left/Center/Tail).
+  - Рядом выводится текст `Battery Status: N \ X` (пока не скейлится).
 
 ---
 
 ## 10. Что работает
 
-- ✅ Иконка появляется при надевании часов `mtsw:smartwatch`
-- ✅ Кольцо ядра появляется при установке ядра, вращается
-- ✅ 4 скорости вращения (Never/Slow/Medium/Fast = 0/64/32/16 сек)
-- ✅ 2 направления (Left/Right)
-- ✅ Кольцо скейлится при смене `iconSize` (3 PNG)
-- ✅ Батарейка 5 тиров + текст %
-- ✅ Пульс `<5%` только на текстуре батарейки
-- ✅ Fade `Never` / `0.5` / `1..6` сек
-- ✅ Drag плавный (экранные координаты)
-- ✅ Позиция сохраняется в `.ini`
-- ✅ ПКМ-панель: Pin / Icon size / Fade time / Circle speed / Circle direction / Save
-- ✅ Pin отключает drag, клик работает
-- ✅ Пока панель открыта — иконка не исчезает (`forceVisible`)
+- ✅ Иконка часов + Кольцо (вращение) + Батарейка (5 тиров, пульс)
+- ✅ Плавный Drag&Drop, Pin, сохранение в `.ini`
+- ✅ ПКМ-панели для часов и хотбара
+- ✅ Тактический хотбар появляется/исчезает по ядру
+- ✅ Drag&Drop привязка/свап/отвязка чипов
+- ✅ Активация чипов по ЛКМ через `ChipSystem.activateChip`
+- ✅ Кулдауны (clock-sweep + текст + пульс)
+- ✅ Состояние "Нет батарейки" (иконка + пульс)
+- ✅ Настройки Scale, Gap, Line Position
 - ✅ Локализация EN/RU
-- ✅ Оптимизация: кэш текста %, tier, font height
+- ✅ Оптимизация кэша
 
 ---
 
 ## 11. TODO
 
-### Текущие задачи
-- [ ] **`openInterface()`** — полный интерфейс часов (слоты ядра и чипов) по ЛКМ.
-- [ ] **Хоткей** для открытия интерфейса.
-- [ ] **Исправить ASCII** в `print()` для `openInterface()` — сейчас там кириллица («полный интерфейс часов» → кракозябры).
-- [ ] **Перевести HUD на родной логгер мода** — убрать двойной префикс `[[MT] SmartWatchFramework]`.
+### 🔴 Критические баги
+- [ ] **0. Ресайз текста не работает!**
+  - Текст `Battery Status` (и любые другие) не масштабируется вместе с `tacticalScale`. `drawTextScaled` работает криво. Нужно найти другой способ или забить.
+- [ ] **0.1. Отступы при смене Top/Bottom неровные.**
+  - При `tacticalLinePosition = "top"` математика `getSlotsOffsetY` и `recalcSize` даёт сбой: текст/слоты наезжают друг на друга или обрезаются.
 
-### Будущее (roadmap)
-- [ ] **Перерисовать иконку часов полностью.**
-- [ ] **Палитра кольца и батарейки в стиле Nier: Automata** — main colors круга и базы батарейки.
-- [ ] **Новый HUD для тактических чипов** — панелька расширяется в зависимости от установленного ядра.
-  - Уровни: `I`, `II`, `III`, `IV`, `V`
-  - Количество слотов = capacity ядра (1..5)
-  - Разные грейды ядер дают разную ёмкость по тактическим чипам
-- [ ] **Индикатор памяти** рядом с иконкой.
-- [ ] **Бейджи для уведомлений**.
+### 🟡 Графика (нарисовать)
+- [ ] **1. Иконка замка**: `LockOpen.png` и `LockClosed.png` (24x24 / 32x32).
+- [ ] **2. Иконки полосы**: `LineLeft.png`, `LineCenter.png`, `LineTail.png` (с эффектом fade-in и хвостом).
+- [ ] **3. Позиционирование полосы**: Вынести сдвиг `LINE_OFFSET_X = 25` в настройки.
+- [ ] **4. Позиционирование текста**: Сделать независимым от Top/Bottom.
+- [ ] **5. Визуал текста**: Добавить тень или сменить шрифт (Nier style).
+
+### Будущее (Roadmap)
+- [ ] `openInterface()` — полный интерфейс часов (слоты ядра и чипов).
+- [ ] Хоткей для открытия интерфейса.
+- [ ] Перевести HUD на родной логгер мода (убрать `[[MT] SmartWatchFramework]`).
+- [ ] Индикатор памяти / батареи рядом с иконкой.
+- [ ] Перерисовать иконку часов / сменить палитру на Nier Automata.
+- [ ] **Индикатор количества выстрелов (например `x3`)** рядом со слотом.
 
 ---
 
 ## 12. Чек-лист при изменениях
 
-- [ ] `MT_SmartWatch.HUD.*`, не свои глобалы
+- [ ] `MT_SmartWatch.HUD.*`
 - [ ] `:derive("MT_SmartWatch_HUD_XXX")`
-- [ ] Лог-префикс `[MT Smart Watch - HUD]`
-- [ ] **Только ASCII** в `print()`
-- [ ] Lazy-build для нового `.derive`
-- [ ] Drag → экранные координаты + 4 метода + `setCapture`
-- [ ] Не вызывать `getTimeStep()`
-- [ ] Для вращения — только `javaObject:DrawTextureAngle(tex, cx, cy, angleDeg)` (градусы!)
-- [ ] Если нужна масштабируемая вращающаяся текстура — пул PNG 256/128/64
-- [ ] Хранилище — `.ini`
-- [ ] Переводы через `UI_MTSW_HUD_*`
-- [ ] Не дублировать логику `Watch.lua` / `OSCore.lua` / `ChipSystem.lua` / `Battery.lua`
+- [ ] Только ASCII в `print()`
+- [ ] Lazy-build для `.derive`
+- [ ] Drag: экранные координаты + 4 метода + `setCapture`
+- [ ] Вращение: `javaObject:DrawTextureAngle(tex, cx, cy, angleDeg)`
+- [ ] `Battery.getCurrent(watch)` — только через точку!
+- [ ] Хранилище: `.ini`
+- [ ] Переводы `UI_MTSW_HUD_*`
 
 ---
 
 ## 13. Формат апдейтов
 
-Для новой итерации:
-
-1. **Правь этот файл напрямую:**
-   - Добавь запись в раздел **0. Changelog** (новая версия наверху).
-   - Обнови разделы 2/3/6/9/10/11 под текущее состояние.
-2. **Или создай временный `update_N.md`** для отдельной фичи:
-   ```markdown
-   # Update N — <название>
-   ## Что изменилось
-   ## Файлы
-   ## Новые API / ключи
-   ## Грабли
-   ## TODO
-   ```
-   После мерджа — перенеси содержимое в этот файл.
-
-Приложи этот `.md` как контекст в новом чате с ИИ — он мгновенно в курсе.
+При обновлении:
+1. Правь этот файл напрямую (добавь запись в Changelog).
+2. Или создай `update_N.md` для отдельной фичи.
 
 ---
 
 ## 14. Быстрые ссылки
 
-- Reference-моды: `SurvivalHUD` (thCraftMP), `MiniHealthPlus` (TwisTonFire)
+- Reference-моды: `SurvivalHUD`, `MiniHealthPlus`
 - PZ Wiki Lua Events: https://pzwiki.net/wiki/Lua_Event
-- Текущая версия HUD: `[MT Smart Watch - HUD] Init complete`
 - Файл настроек: `Zomboid/MT_SmartWatch_HUD.ini`

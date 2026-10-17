@@ -235,8 +235,8 @@ local function buildIconClass()
         if x < 0 or y < 0 or x >= self:getWidth() or y >= self:getHeight() then
             return false
         end
-        if MT_SmartWatch.HUD.openSettingsPanel then
-            MT_SmartWatch.HUD.openSettingsPanel(self)
+        if MT_SmartWatch.HUD.openSettingsPanel_WatchOnScreen then
+            MT_SmartWatch.HUD.openSettingsPanel_WatchOnScreen(self)
         end
         return true
     end

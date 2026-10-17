@@ -38,6 +38,14 @@ Register.Data = {
         radius = 15,
         durationMinutes = 30,
 
+        onActivate = function(player, watch)
+            return MT_SmartWatch.TacticalEMP.activate(player, watch)
+        end,
+
+        getCooldown = function(watch)
+            return MT_SmartWatch.TacticalEMP.getCooldownRemainingMinutes(watch)
+        end,
+
     },
 
 }

@@ -1,3 +1,14 @@
 {
 	"Base.MT_SmartWatch" 				: "MT_SmartWatch",
+	
+	"Base.MTSW_Core_Logic" 				: "РУCore_Logic",
+	"Base.MTSW_Core_Tactical" 			: "РУCore_Tactical",
+	"Base.MTSW_Core_Quantum" 			: "РУCore_Quantum",
+	"Base.MTSW_Core_BlackBox" 			: "РУCore_BlackBox",
+	"Base.MTSW_Core_042" 				: "РУCore_042",
+	
+	"Base.MTSW_TChip_EMP" 				: "РУTChip_EMP",
+	"Base.MTSW_AChip_Radio" 			: "РУAChip_Radio",
+	"Base.MTSW_FChip_StaminaHUD" 		: "РУFChip_StaminaHUD",
+	"Base.MTSW_FChip_Time" 				: "РУFChip_Time",
 }

@@ -1320,7 +1320,7 @@ function ChipSystem.removeChip(
     end
 
 
-    --------------------------------------------------
+        --------------------------------------------------
     -- REMOVE ACTIVE STATE
     --------------------------------------------------
 
@@ -1330,6 +1330,16 @@ function ChipSystem.removeChip(
         false
     )
 
+    --------------------------------------------------
+    -- CLEAR FROM HOTBAR
+    --------------------------------------------------
+
+    local hotbarSlots = ChipSystem.getHotbarSlots(watch)
+    for slotIdx, ft in pairs(hotbarSlots) do
+        if ft == fullType then
+            hotbarSlots[slotIdx] = nil
+        end
+    end
 
     --------------------------------------------------
     -- REMOVE FROM WATCH
@@ -1339,6 +1349,10 @@ function ChipSystem.removeChip(
         chips,
         chipIndex
     )
+
+    if watch.transmitModData then
+        pcall(function() watch:transmitModData() end)
+    end
 
 
     print(
@@ -1439,6 +1453,250 @@ function ChipSystem.debug(
 
 end
 
+--------------------------------------------------
+-- HOTBAR SLOTS (слоты быстрого доступа)
+--------------------------------------------------
+function ChipSystem.getHotbarSlots(watch)
+    local watchData = getWatchData(watch)
+    if not watchData then return {} end
+    watchData.hotbarSlots = watchData.hotbarSlots or {}
+    return watchData.hotbarSlots
+end
+
+function ChipSystem.getHotbarSlot(watch, idx)
+    if not watch or not idx then return nil end
+    return ChipSystem.getHotbarSlots(watch)[idx]
+end
+
+function ChipSystem.setHotbarSlot(watch, idx, fullType)
+    if not watch or not idx then return false end
+    local slots = ChipSystem.getHotbarSlots(watch)
+    slots[idx] = fullType
+    return true
+end
+
+function ChipSystem.clearHotbarSlot(watch, idx)
+    if not watch or not idx then return false end
+    ChipSystem.getHotbarSlots(watch)[idx] = nil
+    return true
+end
+
+function ChipSystem.pruneHotbarSlots(watch)
+    if not watch then return false end
+    local slots = ChipSystem.getHotbarSlots(watch)
+    local installed = ChipSystem.getInstalledChips(watch) or {}
+    local set = {}
+    for i = 1, #installed do set[installed[i]] = true end
+    for idx, ft in pairs(slots) do
+        if not set[ft] then slots[idx] = nil end
+    end
+    return true
+end
+
+--------------------------------------------------
+-- ACTIVATE CHIP
+--------------------------------------------------
+function ChipSystem.activateChip(player, watch, fullType)
+    if not player or not watch or not fullType then return false end
+
+    local data = ChipSystem.getChipDataByFullType(fullType)
+    if data and type(data.onActivate) == "function" then
+        local ok, result = pcall(data.onActivate, player, watch)
+        if not ok then
+            print("[MT Smart Watch] activateChip error: " .. tostring(result))
+            return false
+        end
+        return result == true
+    end
+
+    -- Fallback: просто флаг
+    ChipSystem.setChipActive(watch, fullType, true)
+    return true
+end
+
+--------------------------------------------------
+-- HOTBAR SLOTS
+--------------------------------------------------
+function ChipSystem.getHotbarSlots(watch)
+    local watchData = getWatchData(watch)
+    if not watchData then return {} end
+    watchData.hotbarSlots = watchData.hotbarSlots or {}
+    return watchData.hotbarSlots
+end
+
+function ChipSystem.getHotbarSlot(watch, idx)
+    if not watch or not idx then return nil end
+    return ChipSystem.getHotbarSlots(watch)[idx]
+end
+
+function ChipSystem.setHotbarSlot(watch, idx, fullType)
+    if not watch or not idx then return false end
+    local slots = ChipSystem.getHotbarSlots(watch)
+    slots[idx] = fullType
+    -- Синк для сохранения / MP
+    if watch.transmitModData then
+        pcall(function() watch:transmitModData() end)
+    end
+    return true
+end
+
+function ChipSystem.clearHotbarSlot(watch, idx)
+    if not watch or not idx then return false end
+    ChipSystem.getHotbarSlots(watch)[idx] = nil
+    if watch.transmitModData then
+        pcall(function() watch:transmitModData() end)
+    end
+    return true
+end
+
+function ChipSystem.clearHotbarSlots(watch)
+    if not watch then return false end
+    local watchData = getWatchData(watch)
+    if not watchData then return false end
+    watchData.hotbarSlots = {}
+    if watch.transmitModData then
+        pcall(function() watch:transmitModData() end)
+    end
+    return true
+end
+
+function ChipSystem.pruneHotbarSlots(watch)
+    if not watch then return false end
+    local watchData = getWatchData(watch)
+    if not watchData then return false end
+
+    local slots = watchData.hotbarSlots or {}
+
+    -- Safety: если чипы ещё не загрузились, но слоты не пусты —
+    -- НЕ чистим (иначе потеряем данные при загрузке).
+    local chips = watchData.chips
+    if not chips or #chips == 0 then
+        local hasSlots = false
+        for _ in pairs(slots) do hasSlots = true break end
+        if hasSlots then
+            return false
+        end
+        return true
+    end
+
+    local set = {}
+    for i = 1, #chips do set[chips[i]] = true end
+    for idx, ft in pairs(slots) do
+        if not set[ft] then slots[idx] = nil end
+    end
+    return true
+end
+
+--------------------------------------------------
+-- ACTIVATE CHIP
+--------------------------------------------------
+function ChipSystem.activateChip(player, watch, fullType)
+    if not player or not watch or not fullType then return false end
+
+    local data = ChipSystem.getChipDataByFullType(fullType)
+    if data and type(data.onActivate) == "function" then
+        local ok, result = pcall(data.onActivate, player, watch)
+        if not ok then
+            print("[MT Smart Watch] activateChip error: " .. tostring(result))
+            return false
+        end
+        return result == true
+    end
+
+    ChipSystem.setChipActive(watch, fullType, true)
+    return true
+end--------------------------------------------------
+-- HOTBAR SLOTS
+--------------------------------------------------
+function ChipSystem.getHotbarSlots(watch)
+    local watchData = getWatchData(watch)
+    if not watchData then return {} end
+    watchData.hotbarSlots = watchData.hotbarSlots or {}
+    return watchData.hotbarSlots
+end
+
+function ChipSystem.getHotbarSlot(watch, idx)
+    if not watch or not idx then return nil end
+    return ChipSystem.getHotbarSlots(watch)[idx]
+end
+
+function ChipSystem.setHotbarSlot(watch, idx, fullType)
+    if not watch or not idx then return false end
+    local slots = ChipSystem.getHotbarSlots(watch)
+    slots[idx] = fullType
+    -- Синк для сохранения / MP
+    if watch.transmitModData then
+        pcall(function() watch:transmitModData() end)
+    end
+    return true
+end
+
+function ChipSystem.clearHotbarSlot(watch, idx)
+    if not watch or not idx then return false end
+    ChipSystem.getHotbarSlots(watch)[idx] = nil
+    if watch.transmitModData then
+        pcall(function() watch:transmitModData() end)
+    end
+    return true
+end
+
+function ChipSystem.clearHotbarSlots(watch)
+    if not watch then return false end
+    local watchData = getWatchData(watch)
+    if not watchData then return false end
+    watchData.hotbarSlots = {}
+    if watch.transmitModData then
+        pcall(function() watch:transmitModData() end)
+    end
+    return true
+end
+
+function ChipSystem.pruneHotbarSlots(watch)
+    if not watch then return false end
+    local watchData = getWatchData(watch)
+    if not watchData then return false end
+
+    local slots = watchData.hotbarSlots or {}
+
+    -- Safety: если чипы ещё не загрузились, но слоты не пусты —
+    -- НЕ чистим (иначе потеряем данные при загрузке).
+    local chips = watchData.chips
+    if not chips or #chips == 0 then
+        local hasSlots = false
+        for _ in pairs(slots) do hasSlots = true break end
+        if hasSlots then
+            return false
+        end
+        return true
+    end
+
+    local set = {}
+    for i = 1, #chips do set[chips[i]] = true end
+    for idx, ft in pairs(slots) do
+        if not set[ft] then slots[idx] = nil end
+    end
+    return true
+end
+
+--------------------------------------------------
+-- ACTIVATE CHIP
+--------------------------------------------------
+function ChipSystem.activateChip(player, watch, fullType)
+    if not player or not watch or not fullType then return false end
+
+    local data = ChipSystem.getChipDataByFullType(fullType)
+    if data and type(data.onActivate) == "function" then
+        local ok, result = pcall(data.onActivate, player, watch)
+        if not ok then
+            print("[MT Smart Watch] activateChip error: " .. tostring(result))
+            return false
+        end
+        return result == true
+    end
+
+    ChipSystem.setChipActive(watch, fullType, true)
+    return true
+end
 
 --------------------------------------------------
 -- LOADED
